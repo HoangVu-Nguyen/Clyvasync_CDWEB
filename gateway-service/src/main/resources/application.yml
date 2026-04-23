@@ -1,0 +1,20 @@
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true # Thêm dòng này để xử lý OPTIONS request
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "https://localhost:4200"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        - id: auth-server-authorize
+          uri: lb://identity-service
+          predicates:
+            - Path=/.well-known/openid-configuration,/oauth2/authorize,/oauth2/token,/oauth2/jwks,/oauth2/revoke,/oauth2/introspect,/userinfo
+        - id: auth-server-login
+          uri: lb://identity-service
+          predicates:
+            - Path=/login,/logout

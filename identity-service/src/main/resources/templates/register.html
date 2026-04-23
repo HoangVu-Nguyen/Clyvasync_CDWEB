@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Player - Clyvasync</title>
+    <!-- Tailwind CSS & Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+    <style>
+        /* CSS Mario Custom - Matching the Login Page */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .font-headline { font-family: 'Press Start 2P', cursive; }
+
+        .pixel-bg-mario {
+            background-color: #c9ffbf; /* Light green background */
+            background-image:
+                    linear-gradient(rgba(0,0,0,0.05) 2px, transparent 2px),
+                    linear-gradient(90deg, rgba(0,0,0,0.05) 2px, transparent 2px);
+            background-size: 40px 40px;
+        }
+
+        .pixel-border {
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 0 rgba(0,55,8,0.1);
+        }
+
+        .mario-hill-bg {
+            border-top-left-radius: 80px;
+            border-top-right-radius: 80px;
+            border: 4px solid #000;
+        }
+
+        .mario-cloud {
+            width: 60px; height: 30px;
+            background: #fff; border-radius: 20px;
+            border: 3px solid #000; position: absolute;
+        }
+
+        .warp-pipe-gradient {
+            background: linear-gradient(90deg, #2ecc71, #a2f3a2, #27ae60);
+        }
+
+        /* Red Action Button */
+        .btn-mario-red {
+            background-color: #ff0000;
+            box-shadow: 0 8px 0 0 #a40009;
+            transition: all 0.1s;
+        }
+        .btn-mario-red:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 0 #a40009;
+        }
+
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="pixel-bg-mario min-h-screen flex flex-col overflow-x-hidden">
+
+<main class="flex-grow relative flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+
+    <!-- Background Decor (Clouds & Dark Green Base) -->
+    <div class="absolute inset-0 z-0 pointer-events-none opacity-40">
+        <div class="absolute bottom-0 w-full h-32 bg-green-700 opacity-10"></div>
+        <div class="mario-cloud top-20 left-[15%] shadow-[8px_8px_0_0_#ffffff]"></div>
+        <div class="mario-cloud top-40 right-[10%] shadow-[8px_8px_0_0_#ffffff] w-32"></div>
+    </div>
+
+    <!-- Hills Decor -->
+    <div class="absolute bottom-0 left-0 right-0 flex items-end justify-center gap-0 pointer-events-none opacity-100">
+        <div class="w-64 h-32 bg-[#43b047] mario-hill-bg translate-x-12 scale-90"></div>
+        <div class="w-96 h-56 bg-[#2ecc71] mario-hill-bg z-10"></div>
+        <div class="w-48 h-24 bg-[#43b047] mario-hill-bg -translate-x-12 scale-75"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-6xl grid md:grid-cols-5 gap-8 items-start mt-8 md:mt-0">
+
+        <!-- Left Column: Branding / Welcome Info (2/5 width) -->
+        <div class="md:col-span-2 space-y-6">
+            <div class="space-y-4 mb-8">
+                <h1 class="font-headline text-4xl text-[#2ecc71] drop-shadow-[4px_4px_0_#000]">CLYVASYNC</h1>
+                <h2 class="font-headline text-lg text-black drop-shadow-[2px_2px_0_#fff]">WORLD 1-1</h2>
+            </div>
+
+            <div class="bg-white p-6 pixel-border relative opacity-95">
+                <div class="absolute -top-6 -left-6 bg-[#fbd000] w-12 h-12 border-4 border-black flex items-center justify-center font-black text-xl shadow-[4px_4px_0_0_#000] animate-bounce">
+                    ?
+                </div>
+
+                <h3 class="font-headline text-xl text-[#ff0000] mb-4 mt-2">NEW PLAYER</h3>
+                <p class="text-[10px] font-bold leading-loose text-gray-700 uppercase">
+                    Welcome to the kingdom! Register your player profile to save your progress, connect with allies, and unlock new levels.
+                </p>
+
+                <div class="mt-6 pt-4 border-t-4 border-dashed border-gray-200">
+                    <a th:href="@{/login}" class="inline-flex items-center gap-2 font-headline text-[10px] text-green-700 hover:text-red-600 transition-colors group">
+                        <span class="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                        RETURN TO LOGIN
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Registration Form (3/5 width) -->
+        <div class="md:col-span-3 relative">
+
+            <!-- Top Pipe Decor -->
+            <div class="hidden md:block absolute -top-8 left-1/2 -translate-x-1/2 w-48 h-12 warp-pipe-gradient border-4 border-black z-20 shadow-[0_8px_0_0_#003708]"></div>
+
+            <div class="bg-white p-8 md:p-10 pixel-border relative z-10">
+
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-headline font-bold text-[#ff0000] tracking-tighter mb-2 drop-shadow-[2px_2px_0px_#000]">REGISTER</h2>
+                    <p class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Create Your Identity</p>
+                </div>
+
+                <!-- Backend Error Messages -->
+                <div th:if="${error}" class="bg-red-600 border-4 border-black p-2 mb-6 text-white font-headline text-[9px] text-center">
+                    ERROR: <span th:text="${error}"></span>
+                </div>
+                <div th:if="${success}" class="bg-green-500 border-4 border-black p-2 mb-6 text-white font-headline text-[9px] text-center">
+                    SUCCESS! REDIRECTING...
+                </div>
+
+                <!-- Registration Form -->
+                <form th:action="@{/register}" method="post" class="space-y-5">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Full Name -->
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Player Name</label>
+                            <input name="fullName" type="text" required class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 transition-colors text-sm" placeholder="MARIO VANE">
+                        </div>
+
+                        <!-- Email -->
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Player ID (Email)</label>
+                            <input name="email" type="email" required class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 transition-colors text-sm" placeholder="MAIL@DOMAIN.COM">
+                        </div>
+
+                        <!-- Password -->
+                        <div class="space-y-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Secret Key</label>
+                            <input name="password" type="password" required class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 text-sm" placeholder="********">
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="space-y-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Confirm Key</label>
+                            <input name="confirmPassword" type="password" required class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 text-sm" placeholder="********">
+                        </div>
+
+                        <!-- Birth Date -->
+                        <div class="space-y-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Spawn Date</label>
+                            <input name="birthDate" type="date" required class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 text-sm uppercase">
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="space-y-2">
+                            <label class="block font-headline text-[9px] font-bold text-black uppercase">Comms (Phone)</label>
+                            <input name="phoneNumber" type="text" class="w-full bg-gray-50 p-3 border-4 border-black outline-none focus:bg-white focus:border-green-500 text-sm" placeholder="090...">
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-6">
+                        <button type="submit" class="w-full btn-mario-red border-4 border-black px-6 py-5 flex items-center justify-between group">
+                            <span class="font-headline text-lg text-white drop-shadow-[2px_2px_0_#000]">JOIN PARTY</span>
+                            <div class="w-10 h-10 bg-white border-4 border-black rounded-full flex items-center justify-center text-[#ff0000] font-bold text-xl shadow-[inset_-3px_-3px_0_#bdc3c7]">A</div>
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+
+            <!-- Bottom Pipe Decor -->
+            <div class="hidden md:block absolute -bottom-6 left-1/2 -translate-x-1/2 w-64 h-16 warp-pipe-gradient border-4 border-black z-0"></div>
+        </div>
+
+    </div>
+</main>
+
+</body>
+</html>
