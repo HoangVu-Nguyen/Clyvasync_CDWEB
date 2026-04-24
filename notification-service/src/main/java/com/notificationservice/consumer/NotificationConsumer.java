@@ -1,6 +1,7 @@
 package com.notificationservice.consumer;
 
 
+import com.commonlibrary.contanst.KafkaConstant;
 import com.commonlibrary.dto.event.UserEventDTO;
 import com.commonlibrary.enums.otp.OtpType;
 import com.notificationservice.dto.request.StateEmailRequest;
@@ -21,7 +22,12 @@ public class NotificationConsumer {
         log.info(">>>> ĐÃ KHỞI TẠO BEAN NOTIFICATION CONSUMER THÀNH CÔNG! <<<<");
     }
     @KafkaListener(
-            topics = "identity.user.registered"
+            topics = {
+                    KafkaConstant.USER_REGISTERED,
+                    KafkaConstant.USER_ACTIVATED,
+                    KafkaConstant.FORGOT_PASSWORD
+            },
+            groupId = "notification-group"
     )
     public void handleEmailEvent(UserEventDTO payload) {
         log.info("Kafka Consumer: Nhận được sự kiện [{}] từ Identity Service cho {}",

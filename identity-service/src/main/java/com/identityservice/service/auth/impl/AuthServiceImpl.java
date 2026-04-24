@@ -8,6 +8,8 @@ import com.commonlibrary.exception.AppException;
 import com.commonlibrary.exception.ResultCode;
 import com.identityservice.dto.request.LoginRequest;
 import com.identityservice.dto.request.RegisterRequest;
+import com.identityservice.dto.request.ResendVerificationRequest;
+import com.identityservice.dto.request.VerifyAccountRequest;
 import com.identityservice.dto.response.TokenResponse;
 import com.identityservice.entity.auth.entity.UserCredential;
 import com.identityservice.enums.auth.RoleName;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
 
@@ -166,19 +169,34 @@ public class AuthServiceImpl implements AuthService {
 
     private UserCredential createUserFromRequest(RegisterRequest request) {
         UserCredential user = new UserCredential();
+
+        // Chuẩn hóa dữ liệu đầu vào
         user.setEmail(request.getEmail().trim().toLowerCase());
-        user.setName(request.getUsername());
+        user.setName(request.getUsername().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
+        // Trạng thái mặc định
         user.setVerified(false);
-        // createdAt/updatedAt để MetaObjectHandler lo nếu có, không thì set thủ công ở đây
+        user.setStatus(1);
+
+        // createdAt/updatedAt sẽ do MyMetaObjectHandler lo (nếu ông đã cấu hình)
         return user;
     }
 
     private UserCredential updateUserFromRequest(UserCredential user, RegisterRequest request) {
-        user.setName(request.getUsername());
+        // Chỉ cập nhật nếu có dữ liệu mới
+        if (StringUtils.hasText(request.getUsername())) {
+            user.setName(request.getUsername().trim());
+        }
+
         if (StringUtils.hasText(request.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
+
+        // Nếu ông dùng @TableField(fill = FieldFill.INSERT_UPDATE)
+        // thì KHÔNG CẦN dòng setUpdatedAt thủ công này nữa, MyBatis Plus tự lo.
+        // user.setUpdatedAt(LocalDateTime.now());
+
         return user;
     }
     @Override
@@ -186,11 +204,11 @@ public class AuthServiceImpl implements AuthService {
     public void verifyAccount(VerifyAccountRequest request) {
         String email = request.getEmail();
 
-        User user = userService.findOptionalByEmail(email)
+        UserCredential user = userService.findOptionalByEmail(email)
                 .orElseThrow(() -> new AppException(ResultCode.USER_NOT_FOUND));
 
 
-        if (user.isActive()) {
+        if (user.isVerified()) {
             cacheService.delete(RedisKeyType.VERIFY_ACCOUNT.getFullKey(email));
             throw new AppException(ResultCode.USER_ALREADY_ACTIVE);
         }
@@ -204,7 +222,8 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ResultCode.OTP_INVALID);
         }
 
-        user.setActive(true);
+        user.setVerified(true);
+        user.setVerifiedAt(LocalDateTime.now());
         userService.save(user);
 
         cacheService.delete(RedisKeyType.VERIFY_ACCOUNT.getFullKey(email));
@@ -222,13 +241,13 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ResultCode.PLEASE_WAIT_BEFORE_RESENDING);
         }
 
-        User user = userService.findOptionalByEmail(email)
+        UserCredential user = userService.findOptionalByEmail(email)
                 .orElseThrow(() -> new AppException(ResultCode.USER_NOT_FOUND));
 
         if (type == OtpType.ACTIVATION) {
-            if (user.isActive()) throw new AppException(ResultCode.USER_ALREADY_ACTIVE);
+            if (user.isVerified()) throw new AppException(ResultCode.USER_ALREADY_ACTIVE);
         } else if (type == OtpType.RECOVERY) {
-            if (!user.isActive()) throw new AppException(ResultCode.USER_NOT_ACTIVE);
+            if (!user.isVerified()) throw new AppException(ResultCode.USER_NOT_ACTIVE);
         }
 
         String otp = otpService.generateOtp();
@@ -236,10 +255,90 @@ public class AuthServiceImpl implements AuthService {
         cacheService.setProcessLimit(email, RedisKeyType.SEND_EMAIL_LIMIT);
 
 
-        UserEventDTO eventPayload = new UserEventDTO(user.getEmail(), user.getFullName(), otp, type.name());
-        authProducer.sendRegisterEvent(eventPayload);
+        UserEventDTO eventPayload = new UserEventDTO(user.getEmail(), user.getName(), otp, type.name());
+        authProducer.sendEvent(KafkaConstant.USER_ACTIVATED,eventPayload);
 
         log.info("Đã gửi lại OTP (Type: {}) thành công cho: {}", type.name(), email);
+    }
+
+    @Override
+    public void verifyPasswordResetOtp(String otp, String email) {
+        String cleanEmail = email.trim().toLowerCase();
+
+        userService.findOptionalByEmail(cleanEmail)
+                .orElseThrow(() -> new AppException(ResultCode.USER_NOT_FOUND));
+
+        String storedOtp = cacheService.getOtp(cleanEmail, RedisKeyType.VERIFY_ACCOUNT);
+        if (ObjectUtils.isEmpty(storedOtp)) {
+            throw new AppException(ResultCode.OTP_EXPIRED);
+        }
+
+        if (!storedOtp.equals(otp)) {
+            throw new AppException(ResultCode.OTP_INVALID);
+        }
+
+        log.info("Xác thực mã OTP khôi phục hợp lệ cho email: {}", cleanEmail);
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        String cleanEmail = email.trim().toLowerCase();
+
+        UserCredential user = userService.findOptionalByEmail(cleanEmail)
+                .orElseThrow(() -> new AppException(ResultCode.USER_NOT_FOUND));
+
+        // 2. Chống spam gửi mail
+        if (cacheService.isSpamming(cleanEmail, RedisKeyType.SEND_EMAIL_LIMIT)) {
+            throw new AppException(ResultCode.PLEASE_WAIT_BEFORE_RESENDING);
+        }
+
+        // 3. Tạo mã OTP khôi phục (Dùng chung Type VERIFY_ACCOUNT hoặc tạo Type mới FORGOT_PASSWORD)
+        String otp = otpService.generateOtp();
+        cacheService.saveOtp(cleanEmail, otp, RedisKeyType.VERIFY_ACCOUNT);
+        cacheService.setProcessLimit(cleanEmail, RedisKeyType.SEND_EMAIL_LIMIT);
+
+        // 4. Bắn vào RabbitMQ để gửi mail "Khôi phục mật khẩu"
+        // Gợi ý: Bạn có thể tạo một Event riêng hoặc dùng chung RegisterEvent với template mail khác
+        UserEventDTO eventPayload = new UserEventDTO(user.getEmail(), user.getName(), otp,OtpType.RECOVERY.name());
+        authProducer.sendEvent(KafkaConstant.FORGOT_PASSWORD,eventPayload);
+
+        log.info("Yêu cầu khôi phục mật khẩu cho email: {}", cleanEmail);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String email, String newPassword, String otp) {
+        String cleanEmail = email.trim().toLowerCase();
+
+        UserCredential user = userService.findOptionalByEmail(cleanEmail)
+                .orElseThrow(() -> new AppException(ResultCode.USER_NOT_FOUND));
+
+
+        String storedOtp = cacheService.getOtp(cleanEmail, RedisKeyType.VERIFY_ACCOUNT);
+        if (ObjectUtils.isEmpty(storedOtp)) {
+            throw new AppException(ResultCode.OTP_EXPIRED);
+        }
+        if (!storedOtp.equals(otp)) {
+            throw new AppException(ResultCode.OTP_INVALID);
+        }
+
+        if (!passwordService.isStrongPassword(newPassword)) {
+            throw new AppException(ResultCode.PASSWORD_TOO_WEAK);
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new AppException(ResultCode.PASSWORD_NOT_MATCH);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userService.save(user);
+
+        cacheService.delete(RedisKeyType.VERIFY_ACCOUNT.getFullKey(cleanEmail));
+        refreshTokenService.revokeAllUserSessions(cleanEmail);
+
+        log.info("STAGE CLEARED: Đã đặt lại mật khẩu thành công cho email: {}", cleanEmail);
     }
 
 }

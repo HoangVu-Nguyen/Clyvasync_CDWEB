@@ -6,6 +6,7 @@ import com.identityservice.dto.request.ResendVerificationRequest;
 import com.identityservice.dto.request.VerifyAccountRequest;
 import com.identityservice.dto.response.TokenResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 @Service
 public interface AuthService {
@@ -24,5 +25,9 @@ public interface AuthService {
     void verifyAccount(VerifyAccountRequest request);
 
     void resendVerification(ResendVerificationRequest request);
+
+     void verifyPasswordResetOtp(String otp, String email) ;
+    void forgotPassword(String email);
+    void resetPassword(String email, String newPassword, String otp);
 
 }
