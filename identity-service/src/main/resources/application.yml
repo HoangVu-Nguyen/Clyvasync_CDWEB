@@ -1,13 +1,18 @@
+server:
+  port: 8081
+  forward-headers-strategy: framework # Chuẩn để nhận diện request từ Gateway
+
 spring:
+  application:
+    name: identity-service # Phải khớp với định danh trong Gateway
+
   kafka:
     bootstrap-servers: ${KAFKA_SERVER:localhost:29092}
-
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: true
-
     consumer:
       group-id: notification-group
       auto-offset-reset: earliest
@@ -15,3 +20,10 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  server-url: https://localhost:8443/identity-service

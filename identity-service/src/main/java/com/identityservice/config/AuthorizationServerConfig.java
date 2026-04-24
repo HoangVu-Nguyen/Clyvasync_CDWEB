@@ -1,17 +1,19 @@
 package com.identityservice.config;
 
+
 import com.identityservice.security.custom.CustomUserDetails;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,8 +22,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
+import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -65,43 +70,49 @@ public class AuthorizationServerConfig {
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(Customizer.withDefaults()) // <--- ĐÓNG CHẤM PHẨY Ở ĐÂY ĐỂ NGẮT CHUỖI BUILDER
 
-        // TẠM THỜI COMMENT TOÀN BỘ CUSTOM HANDLER ĐỂ XEM SPRING CÓ TỰ ĐẺ RA REFRESH TOKEN KHÔNG
+                // TẠM THỜI COMMENT TOÀN BỘ CUSTOM HANDLER ĐỂ XEM SPRING CÓ TỰ ĐẺ RA REFRESH TOKEN KHÔNG
 
                 .tokenEndpoint(tokenEndpoint -> tokenEndpoint.accessTokenResponseHandler((request, response, authentication) -> {
                     if (authentication instanceof OAuth2AccessTokenAuthenticationToken tokenAuth) {
                         var accessToken = tokenAuth.getAccessToken();
                         var refreshToken = tokenAuth.getRefreshToken();
 
-                        // 1. LẤY ID TOKEN TỪ ADDITIONAL PARAMETERS
+                        // --- ĐOẠN LOG ĐỂ KIỂM TRA ---
+                        System.out.println("DEBUG: Access Token Value: " + accessToken.getTokenValue());
+                        if (refreshToken != null) {
+                            System.out.println("DEBUG: Refresh Token Value (Gửi về Client): " + refreshToken.getTokenValue());
+                        } else {
+                            System.out.println("DEBUG: Refresh Token là NULL - Kiểm tra lại scope offline_access hoặc Grant Type");
+                        }
+                        // ----------------------------
+
                         String idTokenValue = "";
                         if (tokenAuth.getAdditionalParameters().containsKey("id_token")) {
                             idTokenValue = tokenAuth.getAdditionalParameters().get("id_token").toString();
                         }
 
-                        // 2. Set refresh token vào HttpOnly Cookie (Giữ nguyên logic của bạn)
+                        // Set Cookie HttpOnly
                         if (refreshToken != null) {
+                            // Vũ lưu ý: Nếu chỗ này vẫn in ra cái UUID ngắn, ông phải check lại database
                             String cookieValue = "refresh_token=" + refreshToken.getTokenValue()
-                                    + "; HttpOnly; Secure; Path=/; Max-Age=" + (60 * 60 * 24 * 30) + "; SameSite=Lax";
+                                    + "; HttpOnly; Secure;Path=/; Max-Age=" + (60 * 60 * 24 * 30) + "; SameSite=Lax";
                             response.addHeader("Set-Cookie", cookieValue);
                         }
 
-                        // 3. XÂY DỰNG JSON TRẢ VỀ CÓ ID_TOKEN
                         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                        response.setCharacterEncoding("UTF-8"); // Đảm bảo không lỗi font
+
                         long expiresIn = accessToken.getExpiresAt().getEpochSecond() - accessToken.getIssuedAt().getEpochSecond();
 
                         StringBuilder json = new StringBuilder();
                         json.append("{");
                         json.append("\"access_token\": \"").append(accessToken.getTokenValue()).append("\",");
-
-                        // Thêm id_token vào đây
                         if (!idTokenValue.isEmpty()) {
                             json.append("\"id_token\": \"").append(idTokenValue).append("\",");
                         }
-
                         if (refreshToken != null) {
                             json.append("\"refresh_token\": \"").append(refreshToken.getTokenValue()).append("\",");
                         }
-
                         json.append("\"token_type\": \"Bearer\",");
                         json.append("\"expires_in\": ").append(expiresIn);
                         json.append("}");
@@ -182,7 +193,7 @@ public class AuthorizationServerConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
-                .issuer("http://localhost:8080")
+                .issuer("https://localhost:8443")
                 .build();
     }
 

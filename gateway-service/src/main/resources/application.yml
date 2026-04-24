@@ -1,6 +1,17 @@
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    key-alias: my-ssl-cert
+
 spring:
   cloud:
     gateway:
+      default-filters:
+        - PreserveHostHeader
       globalcors:
         add-to-simple-url-handler-mapping: true # Thêm dòng này để xử lý OPTIONS request
         cors-configurations:
@@ -10,6 +21,12 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
       routes:
+        - id: identity-service
+          uri: lb://identity-service
+          predicates:
+            - Path=/identity-service/**
+          filters:
+            - RewritePath=/identity-service/(?<segment>.*), /${segment}
         - id: auth-server-authorize
           uri: lb://identity-service
           predicates:
@@ -17,4 +34,12 @@ spring:
         - id: auth-server-login
           uri: lb://identity-service
           predicates:
-            - Path=/login,/logout
+            - Path=/login,/logout,/register, /verify-otp, /forgot-password, /reset-password
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Identity Service
+        url: /identity-service/v3/api-docs

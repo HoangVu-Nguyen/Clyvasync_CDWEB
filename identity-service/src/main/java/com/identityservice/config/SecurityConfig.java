@@ -63,7 +63,8 @@ public class SecurityConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
         // Kích hoạt OpenID Connect 1.0 (Bao gồm Logout Endpoint)
-        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
+        http.securityMatcher("/oauth2/**", "/.well-known/**", "/connect/**")
+                .getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(oidc -> oidc
                         .logoutEndpoint(Customizer.withDefaults())
                 );
@@ -106,7 +107,8 @@ public class SecurityConfig {
                         .requestMatchers("/login","/register","/resend-otp","/verify-otp", "/forgot-password" ,"/reset-password","/error", "/oauth2/**", "/.well-known/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/api/**").permitAll()
-                        .requestMatchers("/ws/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs.yaml").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -184,4 +186,5 @@ public class SecurityConfig {
 
         return service;
     }
+
 }
