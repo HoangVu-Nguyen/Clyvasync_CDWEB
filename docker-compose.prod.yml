@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # --- MICROSERVICES ---
+  discovery-server:
+    image: ${DOCKER_USERNAME}/discovery-server:latest
+    ports:
+      - "8761:8761"
+    networks:
+      - clyvasync-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761"]
+
+  gateway-service:
+    image: ${DOCKER_USERNAME}/gateway-service:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - clyvasync-net
+
+  identity-service:
+    image: ${DOCKER_USERNAME}/identity-service:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_network
+      - KAFKA_SERVER=kafka-clyvasync:9092
+    networks:
+      - clyvasync-net
+
+  notification-service:
+    image: ${DOCKER_USERNAME}/notification-service:latest
+    depends_on:
+      kafka:
+        condition: service_started
+    environment:
+      - KAFKA_SERVER=kafka-clyvasync:9092
+    networks:
+      - clyvasync-net

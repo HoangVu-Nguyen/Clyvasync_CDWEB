@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  # Mở port ra để ông Connect từ máy thật vào Debug
+  postgres:
+    ports:
+      - "5432:5432"
+
+  kafka:
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+
+  redis:
+    ports:
+      - "6379:6379"
+
