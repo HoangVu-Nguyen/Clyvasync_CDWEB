@@ -1,4 +1,4 @@
-package com.identityservice.enums.otp;
+package com.commonlibrary.enums.otp;
 
 
 import lombok.Getter;

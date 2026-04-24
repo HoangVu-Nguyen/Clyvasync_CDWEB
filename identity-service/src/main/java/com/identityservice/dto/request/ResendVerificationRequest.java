@@ -1,6 +1,6 @@
 package com.identityservice.dto.request;
 
-import com.identityservice.enums.otp.OtpType;
+import com.commonlibrary.enums.otp.OtpType;
 import lombok.Data;
 
 @Data

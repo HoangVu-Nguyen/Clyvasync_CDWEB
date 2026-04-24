@@ -7,4 +7,8 @@ import java.util.Optional;
 @Service
 public interface UserService {
     Optional<UserCredential> findOptionalByEmail(String email);
+    UserCredential save(UserCredential user);
+
+    // Kiểm tra tồn tại
+    boolean existsByEmail(String email);
 }

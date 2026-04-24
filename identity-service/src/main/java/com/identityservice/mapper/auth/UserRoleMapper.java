@@ -13,4 +13,5 @@ public interface UserRoleMapper extends BaseMapper<UserRole> {
             "JOIN user_roles ur ON r.id = ur.role_id " +
             "WHERE ur.user_id = #{userId}")
     Set<String> findRoleNamesByUserId(String userId);
+
 }

@@ -2,6 +2,8 @@ package com.identityservice.service.auth;
 
 import com.identityservice.dto.request.LoginRequest;
 import com.identityservice.dto.request.RegisterRequest;
+import com.identityservice.dto.request.ResendVerificationRequest;
+import com.identityservice.dto.request.VerifyAccountRequest;
 import com.identityservice.dto.response.TokenResponse;
 import org.springframework.stereotype.Service;
 
@@ -19,5 +21,8 @@ public interface AuthService {
     // =====================================================================
 
     void register(RegisterRequest request);
+    void verifyAccount(VerifyAccountRequest request);
+
+    void resendVerification(ResendVerificationRequest request);
 
 }
