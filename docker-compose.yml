@@ -11,6 +11,7 @@ services:
       POSTGRES_DB: clyvasync_network
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     networks:
       - clyvasync-net
     healthcheck:

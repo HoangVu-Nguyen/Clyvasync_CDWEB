@@ -1,9 +1,10 @@
 package com.notificationservice.consumer;
 
 
-import com.commonlibrary.contanst.KafkaConstant;
-import com.commonlibrary.dto.event.UserEventDTO;
-import com.commonlibrary.enums.otp.OtpType;
+import com.commoncore.contanst.KafkaConstant;
+import com.commoncore.dto.event.BaseEvent;
+import com.commoncore.dto.event.UserEventDTO;
+import com.commoncore.enums.otp.OtpType;
 import com.notificationservice.dto.request.StateEmailRequest;
 import com.notificationservice.enums.mail.StateSendMail;
 import com.notificationservice.service.EmailService;
@@ -22,39 +23,37 @@ public class NotificationConsumer {
         log.info(">>>> ĐÃ KHỞI TẠO BEAN NOTIFICATION CONSUMER THÀNH CÔNG! <<<<");
     }
     @KafkaListener(
-            topics = {
-                    KafkaConstant.USER_REGISTERED,
-                    KafkaConstant.USER_ACTIVATED,
-                    KafkaConstant.FORGOT_PASSWORD
-            },
+            topics = {KafkaConstant.USER_EVENTS_TOPIC},
             groupId = "notification-group"
     )
-    public void handleEmailEvent(UserEventDTO payload) {
-        log.info("Kafka Consumer: Nhận được sự kiện [{}] từ Identity Service cho {}",
-                payload.getType(), payload.getEmail());
+    public void handleEmailEvent(BaseEvent<UserEventDTO> event) {
+        String type = event.getType();
+        if (!isEmailEvent(type)) {
+            log.debug("NotificationConsumer: Bỏ qua sự kiện không liên quan: {}", type);
+            return;
+        }
 
-        // 1. Logic ánh xạ giữ nguyên (Vì đây là logic nghiệp vụ của ông)
-        StateSendMail state = determineEmailState(payload.getType());
+        UserEventDTO payload = event.getPayload();
+        log.info("Kafka Consumer: Nhận sự kiện Email ID [{}] loại [{}]", event.getEventId(), type);
 
-        // 2. Chuyển đổi Request
+        StateSendMail state = determineEmailState(type);
         StateEmailRequest emailRequest = new StateEmailRequest(
                 payload.getEmail(),
                 payload.getCode(),
                 state
         );
 
-        // 3. Thực hiện gửi mail qua MailService
         try {
             emailService.sendStateEmail(emailRequest);
-            log.info("Kafka: Đã xử lý gửi mail {} thành công cho: {}", state.name(), payload.getEmail());
         } catch (Exception e) {
-            log.error("Kafka: Lỗi gửi mail cho {}: {}", payload.getEmail(), e.getMessage());
-            // Kafka không tự động retry như RabbitMQ nếu ông không cấu hình
-            // DefaultErrorHandler hoặc RetryTemplate. Tạm thời cứ throw để log lỗi.
-            throw e;
+            log.error("Kafka Lỗi gửi mail: {}", e.getMessage());
         }
     }
 
+    // Hàm lọc để code nhìn sạch hơn
+    private boolean isEmailEvent(String type) {
+        return "ACTIVATION".equalsIgnoreCase(type) || "RECOVERY".equalsIgnoreCase(type);
+    }
     /**
      * Logic ánh xạ được tái sử dụng hoàn toàn
      */

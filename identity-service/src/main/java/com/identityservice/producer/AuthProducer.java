@@ -1,8 +1,9 @@
 package com.identityservice.producer;
 
 
-import com.commonlibrary.contanst.KafkaConstant;
-import com.commonlibrary.dto.event.UserEventDTO;
+
+import com.commoncore.dto.event.UserEventDTO;
+import com.identityservice.dto.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -16,12 +17,11 @@ public class AuthProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendEvent(String topic, UserEventDTO payload) {
-        log.info(">>>> [KAFKA] Đang gửi event tới TOPIC: {} | Email: {}", topic, payload.getEmail());
+    public <T> void sendEvent(String topic, String key, T payload) {
+        log.info(">>>> [KAFKA] Sending event to TOPIC: {} | Key: {}", topic, key);
 
+        kafkaTemplate.send(topic, key, payload);
 
-        kafkaTemplate.send(topic, payload.getEmail(), payload);
-
-        log.info(">>>> [KAFKA] Gửi xong!");
+        log.info(">>>> [KAFKA] Message dispatched successfully!");
     }
 }

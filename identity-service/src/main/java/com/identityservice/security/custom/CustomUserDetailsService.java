@@ -4,8 +4,9 @@ package com.identityservice.security.custom;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.commonlibrary.exception.AppException;
-import com.commonlibrary.exception.ResultCode;
+
+import com.commoncore.exception.AppException;
+import com.commoncore.exception.ResultCode;
 import com.identityservice.entity.auth.entity.UserCredential;
 import com.identityservice.mapper.auth.UserCredentialMapper;
 import com.identityservice.service.auth.UserRoleService;

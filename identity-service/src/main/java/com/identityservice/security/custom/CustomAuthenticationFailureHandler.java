@@ -1,7 +1,7 @@
 package com.identityservice.security.custom;
 
 
-import com.commonlibrary.enums.otp.OtpType;
+import com.commoncore.enums.otp.OtpType;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

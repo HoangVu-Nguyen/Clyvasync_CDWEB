@@ -13,7 +13,7 @@ spring:
       default-filters:
         - PreserveHostHeader
       globalcors:
-        add-to-simple-url-handler-mapping: true # Thêm dòng này để xử lý OPTIONS request
+        add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
             allowedOrigins: "https://localhost:4200"
@@ -43,3 +43,104 @@ springdoc:
     urls:
       - name: Identity Service
         url: /identity-service/v3/api-docs
+
+
+#server:
+#  port: 8443
+#  ssl:
+#    enabled: true
+#    key-store: classpath:keystore.p12
+#    key-store-password: changeit
+#    key-store-type: PKCS12
+#    key-alias: my-ssl-cert
+
+#spring:
+#  data:
+#    redis:
+#      host: ${REDIS_CONNECTION:localhost}
+#      port: 6379
+#  cloud:
+#    gateway:
+#      httpclient:
+#        connect-timeout: 2000
+#        response-timeout: 3s
+#        ssl:
+#          use-insecure-trust-manager: true
+#      default-filters:
+#        - PreserveHostHeader
+#        - SecureHeaders
+#        - name: RequestSize
+#          args:
+#            maxSize: 5000000
+#      globalcors:
+#        add-to-simple-url-handler-mapping: true
+#        cors-configurations:
+#          '[/**]':
+#            allowedOrigins: "https://localhost:4200"
+#            allowedMethods: "*"
+#            allowedHeaders: "*"
+#            allowCredentials: true
+#      routes:
+#        - id: identity-service
+#          uri: lb://identity-service
+#          predicates:
+#            - Path=/identity-service/**
+#          filters:
+#            - RewritePath=/identity-service/(?<segment>.*), /${segment}
+#            - name: RequestRateLimiter
+#              args:
+#                redis-rate-limiter.replenishRate: 5
+#                redis-rate-limiter.burstCapacity: 10
+#                key-resolver: "#{@ipKeyResolver}"
+#            - name: CircuitBreaker
+#              args:
+#                name: identityCircuitBreaker
+#                fallbackUri: forward:/fallback/identity
+#
+#        - id: auth-server-authorize
+#          uri: lb://identity-service
+#          predicates:
+#            - Path=/.well-known/openid-configuration,/oauth2/authorize,/oauth2/token,/oauth2/jwks,/oauth2/revoke,/oauth2/introspect,/userinfo
+#          filters:
+#            - name: RequestRateLimiter
+#              args:
+#                redis-rate-limiter.replenishRate: 5
+#                redis-rate-limiter.burstCapacity: 10
+#                key-resolver: "#{@ipKeyResolver}"
+#            - name: CircuitBreaker
+#              args:
+#                name: authCircuitBreaker
+#                fallbackUri: forward:/fallback/identity
+#
+#        - id: auth-server-login
+#          uri: lb://identity-service
+#          predicates:
+#            - Path=/login,/logout,/register, /verify-otp, /forgot-password, /reset-password
+#          filters:
+#            - name: RequestRateLimiter
+#              args:
+#                redis-rate-limiter.replenishRate: 3
+#                redis-rate-limiter.burstCapacity: 5
+#                key-resolver: "#{@ipKeyResolver}"
+#            - name: CircuitBreaker
+#              args:
+#                name: loginCircuitBreaker
+#                fallbackUri: forward:/fallback/identity
+#
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health
+#  endpoint:
+#    health:
+#      show-details: never
+#
+#springdoc:
+#  api-docs:
+#    enabled: false
+#  swagger-ui:
+#    path: /swagger-ui.html
+#    urls:
+#      - name: Identity Service
+#        url: /identity-service/v3/api-docs

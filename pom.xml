@@ -17,11 +17,13 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>common-library</module>
+        <module>common-core</module>
+        <module>common-database</module>
         <module>discovery-server</module>
         <module>identity-service</module>
         <module>notification-service</module>
         <module>gateway-service</module>
+        <module>profile-service</module>
     </modules>
 
     <properties>

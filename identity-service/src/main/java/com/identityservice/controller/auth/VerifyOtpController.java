@@ -1,8 +1,9 @@
 package com.identityservice.controller.auth;
 
 
-import com.commonlibrary.enums.otp.OtpType;
-import com.commonlibrary.exception.AppException;
+
+import com.commoncore.enums.otp.OtpType;
+import com.commoncore.exception.AppException;
 import com.identityservice.dto.request.ResendVerificationRequest;
 import com.identityservice.dto.request.VerifyAccountRequest;
 import com.identityservice.service.auth.AuthService;

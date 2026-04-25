@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/clyvasync_profile_db
+    username: ${USERNAME_RSQL}
+    password: ${PASSWORD_RSQL}
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  # KAFKA PHẢI NẰM Ở ĐÂY (Dưới spring)
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVER:localhost:29092}
+    consumer:
+      group-id: profile-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # Dùng ErrorHandlingDeserializer để tránh "văng" App khi nhận tin nhắn sai định dạng
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.commoncore.dto.event, com.commoncore.dto"
+
+jetcache:
+  statIntervalMinutes: 15
+  areaInCacheName: false
+  local:
+    default:
+      type: caffeine
+      keyConvertor: fastjson2
+      limit: 1000
+  remote:
+    default:
+      type: redis.lettuce
+      keyConvertor: fastjson2
+      valueEncoder: java
+      valueDecoder: java
+      uri: redis://:${PASSWORD_REDIS}@${REDIS_CONNECTION:localhost}:6379/
+      poolConfig:
+        minIdle: 5
+        maxIdle: 20
+        maxTotal: 50

@@ -2,8 +2,9 @@ package com.identityservice.service.auth.impl;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.commonlibrary.exception.AppException;
-import com.commonlibrary.exception.ResultCode;
+
+import com.commoncore.exception.AppException;
+import com.commoncore.exception.ResultCode;
 import com.identityservice.entity.auth.entity.Role;
 import com.identityservice.entity.auth.entity.UserRole;
 import com.identityservice.enums.auth.RoleName;

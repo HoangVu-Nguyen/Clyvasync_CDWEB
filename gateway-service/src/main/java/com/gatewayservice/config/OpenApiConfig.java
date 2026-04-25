@@ -19,9 +19,7 @@ public class OpenApiConfig {
         final String securitySchemeName = "bearerAuth";
 
         return new OpenAPI()
-                // ƯU TIÊN 1: URL của Gateway (để Swagger bắn request qua Gateway)
-                .addServersItem(new Server().url("http://localhost:8080").description("Gateway Server"))
-                // ƯU TIÊN 2: Các môi trường khác
+                .addServersItem(new Server().url("https://localhost:8443").description("Gateway Server"))
                 .addServersItem(new Server().url("https://vcebook.io.vn").description("Production Server"))
                 .info(new Info().title("Clyvasync API Documentation").version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))

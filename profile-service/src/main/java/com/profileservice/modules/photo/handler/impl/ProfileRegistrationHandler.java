@@ -1,0 +1,25 @@
+package com.profileservice.modules.photo.handler.impl;
+
+import com.commoncore.dto.event.UserEventDTO;
+import com.profileservice.modules.photo.handler.ProfileEventHandler;
+import com.profileservice.modules.photo.service.IProfileService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ProfileRegistrationHandler implements ProfileEventHandler {
+
+    private final IProfileService profileService;
+
+    @Override
+    public void handleRegistration(UserEventDTO payload) {
+        if (payload.getUserId() == null) {
+            log.error(">>>> [KAFKA] UserId is missing in payload!");
+            return;
+        }
+        profileService.initUserProfile(payload);
+    }
+}

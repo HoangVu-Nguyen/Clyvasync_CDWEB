@@ -1,7 +1,7 @@
 package com.identityservice.controller.auth;
 
 
-import com.commonlibrary.exception.AppException;
+import com.commoncore.exception.AppException;
 import com.identityservice.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;

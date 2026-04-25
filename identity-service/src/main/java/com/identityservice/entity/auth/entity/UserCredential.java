@@ -14,7 +14,7 @@ public class UserCredential {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    private String name;
+
     private String email;
 
 

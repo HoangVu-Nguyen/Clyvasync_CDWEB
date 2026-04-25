@@ -1,6 +1,6 @@
 package com.identityservice.controller.auth;
 
-import com.commonlibrary.dto.response.ApiResponse;
+import com.commoncore.dto.response.ApiResponse;
 import com.identityservice.dto.request.LoginRequest;
 import com.identityservice.dto.response.LoginResponse;
 import com.identityservice.dto.response.TokenResponse;

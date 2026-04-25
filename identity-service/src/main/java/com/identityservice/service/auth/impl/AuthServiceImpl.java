@@ -1,11 +1,13 @@
 package com.identityservice.service.auth.impl;
 
 
-import com.commonlibrary.contanst.KafkaConstant;
-import com.commonlibrary.dto.event.UserEventDTO;
-import com.commonlibrary.enums.otp.OtpType;
-import com.commonlibrary.exception.AppException;
-import com.commonlibrary.exception.ResultCode;
+
+import com.commoncore.contanst.KafkaConstant;
+import com.commoncore.dto.event.BaseEvent;
+import com.commoncore.dto.event.UserEventDTO;
+import com.commoncore.enums.otp.OtpType;
+import com.commoncore.exception.AppException;
+import com.commoncore.exception.ResultCode;
 import com.identityservice.dto.request.LoginRequest;
 import com.identityservice.dto.request.RegisterRequest;
 import com.identityservice.dto.request.ResendVerificationRequest;
@@ -36,6 +38,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -107,52 +110,57 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional // QUAN TRỌNG: Đảm bảo lưu User và Role là một khối
+    @Transactional
     public void register(RegisterRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
-        // 1. Chặn spam ngay từ cửa
+        // 1. Chặn spam & validate
         if (cacheService.isSpamming(email, RedisKeyType.SEND_EMAIL_LIMIT)) {
             throw new AppException(ResultCode.PLEASE_WAIT_BEFORE_RESENDING);
         }
-
         validateRegisterRequest(request);
 
-        UserCredential userToSave;
-        Optional<UserCredential> userOptional = userService.findOptionalByEmail(email);
+        // 2. Xử lý lưu User (Create hoặc Update nếu chưa verify)
+        UserCredential userToSave = userService.findOptionalByEmail(email)
+                .map(existing -> {
+                    if (existing.isVerified()) throw new AppException(ResultCode.USER_EXISTED);
+                    return updateUserFromRequest(existing, request);
+                })
+                .orElseGet(() -> createUserFromRequest(request));
 
-        if (userOptional.isPresent()) {
-            UserCredential existingUser = userOptional.get();
-            if (existingUser.isVerified()) {
-                throw new AppException(ResultCode.USER_EXISTED);
-            }
-            userToSave = updateUserFromRequest(existingUser, request);
-        } else {
-            userToSave = createUserFromRequest(request);
-        }
+        UserCredential savedUser = userService.save(userToSave);
 
-        userService.save(userToSave);
+        // 3. Gán Role (Phải xong bước này mới coi là xong DB)
+        userRoleService.assignDefaultRole(savedUser.getId(), RoleName.USER);
 
-        // 3. Gán Role mặc định (Bây giờ đã có userToSave.getId())
-        userRoleService.assignDefaultRole(userToSave.getId(), RoleName.USER);
-
-        // 4. Xử lý OTP
         String otp = otpService.generateOtp();
         cacheService.saveOtp(email, otp, RedisKeyType.VERIFY_ACCOUNT);
         cacheService.setProcessLimit(email, RedisKeyType.SEND_EMAIL_LIMIT);
 
-        // 5. Thông báo hệ thống & Gửi RabbitMQ
-       // eventPublisher.publishEvent(new UserRegisteredEvent(userToSave));
 
-        UserEventDTO eventPayload = UserEventDTO.builder()
-                .email(email)
-                .fullName(userToSave.getName())
-                .code(otp)
-                .type(OtpType.ACTIVATION.name())
+        BaseEvent<UserEventDTO> profileSyncEvent = BaseEvent.<UserEventDTO>builder()
+                .eventId(UUID.randomUUID().toString())
+                .type("USER_REGISTERED")
+                .payload(UserEventDTO.builder()
+                        .userId(savedUser.getId())
+                        .username(request.getUsername())
+                        .birthDate(request.getBirthDate())
+                        .build())
                 .build();
-        authProducer.sendEvent(KafkaConstant.USER_REGISTERED,eventPayload);
 
-        log.info("Đăng ký thành công, OTP đã gửi tới: {}", email);
+        BaseEvent<UserEventDTO> emailOtpEvent = BaseEvent.<UserEventDTO>builder()
+                .eventId(UUID.randomUUID().toString())
+                .type(OtpType.ACTIVATION.name())
+                .payload(UserEventDTO.builder()
+                        .email(email)
+                        .code(otp)
+                        .build())
+                .build();
+
+        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, savedUser.getId(), profileSyncEvent);
+        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, email, emailOtpEvent);
+
+        log.info(">>>> Đăng ký thành công User: {} | Profile & OTP events dispatched", email);
     }
 
     // --- Helper Methods ---
@@ -172,7 +180,6 @@ public class AuthServiceImpl implements AuthService {
 
         // Chuẩn hóa dữ liệu đầu vào
         user.setEmail(request.getEmail().trim().toLowerCase());
-        user.setName(request.getUsername().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         // Trạng thái mặc định
@@ -185,9 +192,7 @@ public class AuthServiceImpl implements AuthService {
 
     private UserCredential updateUserFromRequest(UserCredential user, RegisterRequest request) {
         // Chỉ cập nhật nếu có dữ liệu mới
-        if (StringUtils.hasText(request.getUsername())) {
-            user.setName(request.getUsername().trim());
-        }
+
 
         if (StringUtils.hasText(request.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -255,8 +260,9 @@ public class AuthServiceImpl implements AuthService {
         cacheService.setProcessLimit(email, RedisKeyType.SEND_EMAIL_LIMIT);
 
 
-        UserEventDTO eventPayload = new UserEventDTO(user.getEmail(), user.getName(), otp, type.name());
-        authProducer.sendEvent(KafkaConstant.USER_ACTIVATED,eventPayload);
+
+        UserEventDTO eventPayload  = UserEventDTO.builder().email(email).code(otp).type(type.name()).build();
+        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,request.getEmail(),eventPayload);
 
         log.info("Đã gửi lại OTP (Type: {}) thành công cho: {}", type.name(), email);
     }
@@ -298,10 +304,10 @@ public class AuthServiceImpl implements AuthService {
         cacheService.saveOtp(cleanEmail, otp, RedisKeyType.VERIFY_ACCOUNT);
         cacheService.setProcessLimit(cleanEmail, RedisKeyType.SEND_EMAIL_LIMIT);
 
-        // 4. Bắn vào RabbitMQ để gửi mail "Khôi phục mật khẩu"
-        // Gợi ý: Bạn có thể tạo một Event riêng hoặc dùng chung RegisterEvent với template mail khác
-        UserEventDTO eventPayload = new UserEventDTO(user.getEmail(), user.getName(), otp,OtpType.RECOVERY.name());
-        authProducer.sendEvent(KafkaConstant.FORGOT_PASSWORD,eventPayload);
+
+        UserEventDTO eventPayload  = UserEventDTO.builder().email(email).code(otp).type(OtpType.RECOVERY.name()).build();
+
+        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,email,eventPayload);
 
         log.info("Yêu cầu khôi phục mật khẩu cho email: {}", cleanEmail);
     }
