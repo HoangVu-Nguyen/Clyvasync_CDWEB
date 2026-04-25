@@ -7,6 +7,7 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="common-security" />
         <module name="discovery-server" />
         <module name="gateway-service" />
         <module name="common-database" />
@@ -22,6 +23,7 @@
       <module name="Clyvasync" options="" />
       <module name="common-core" options="-parameters" />
       <module name="common-database" options="-parameters" />
+      <module name="common-security" options="-parameters" />
       <module name="discovery-server" options="-parameters" />
       <module name="gateway-service" options="-parameters" />
       <module name="identity-service" options="-parameters" />

@@ -35,6 +35,16 @@ spring:
           uri: lb://identity-service
           predicates:
             - Path=/login,/logout,/register, /verify-otp, /forgot-password, /reset-password
+        - id: profile-service
+          uri: lb://profile-service
+          predicates:
+            - Path=/api/v1/profiles/**
+        - id: profile-service-docs
+          uri: lb://profile-service
+          predicates:
+            - Path=/profile-service/**
+          filters:
+            - RewritePath=/profile-service/(?<segment>.*), /${segment}
 springdoc:
   api-docs:
     enabled: false
@@ -43,6 +53,9 @@ springdoc:
     urls:
       - name: Identity Service
         url: /identity-service/v3/api-docs
+      - name: Profile Service
+        url: /profile-service/v3/api-docs
+
 
 
 #server:

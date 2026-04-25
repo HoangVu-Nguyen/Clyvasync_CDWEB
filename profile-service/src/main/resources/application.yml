@@ -1,9 +1,20 @@
+server:
+  port: 8083
+  forward-headers-strategy: framework
 spring:
+  application:
+    name: profile-service
   datasource:
     url: jdbc:postgresql://localhost:5432/clyvasync_profile_db
     username: ${USERNAME_RSQL}
     password: ${PASSWORD_RSQL}
     driver-class-name: org.postgresql.Driver
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://localhost:8443/identity-service/oauth2/jwks
+          issuer-uri: https://localhost:8443/identity-service
 
   flyway:
     enabled: true
@@ -42,3 +53,10 @@ jetcache:
         minIdle: 5
         maxIdle: 20
         maxTotal: 50
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  server-url: https://localhost:8443/profile-service

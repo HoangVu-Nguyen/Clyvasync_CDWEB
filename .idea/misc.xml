@@ -11,6 +11,7 @@
         <option value="$PROJECT_DIR$/notification-service/pom.xml" />
         <option value="$PROJECT_DIR$/profile-service/pom.xml" />
         <option value="$PROJECT_DIR$/common-core/pom.xml" />
+        <option value="$PROJECT_DIR$/common-security/pom.xml" />
       </list>
     </option>
   </component>

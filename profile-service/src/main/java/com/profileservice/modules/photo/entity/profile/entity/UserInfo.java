@@ -2,6 +2,7 @@ package com.profileservice.modules.photo.entity.profile.entity;
 
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.commoncore.enums.privacy.Privacy;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,8 @@ public class UserInfo {
 
     @TableField("user_id")
     private String userId;
+    @TableField("privacy")
+    private Privacy privacy;
     @TableField("username")
     private String username;
 

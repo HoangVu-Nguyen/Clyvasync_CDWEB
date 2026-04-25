@@ -1,17 +1,23 @@
 version: '3.8'
 
 services:
-  # Mở port ra để ông Connect từ máy thật vào Debug
   postgres:
     ports:
       - "5432:5432"
 
   kafka:
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - "9092:9092"   # Internal Docker (thường không cần map ra nhưng để đây cũng được)
+      - "29092:29092" # Cổng cho máy thật/IDE gọi vào (External)
 
+  # Caching layer cho JetCache
   redis:
     ports:
       - "6379:6379"
 
+  # --- SPICEDB ---
+  # Đây là "ông trọng tài" phân quyền cho toàn bộ hệ thống
+  spicedb:
+    ports:
+      - "50051:50051" # Cổng gRPC - Cực kỳ quan trọng để code Java gọi checkPermission
+      - "9090:9090"   # Cổng HTTP - Dùng cho Dashboard hoặc công cụ zed CLI

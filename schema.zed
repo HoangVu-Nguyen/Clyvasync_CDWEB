@@ -1,0 +1,10 @@
+definition user {}
+
+definition resource {
+    relation owner: user
+    relation friend: user
+    relation blocked: user
+
+
+    permission view = (owner + friend) - blocked
+}

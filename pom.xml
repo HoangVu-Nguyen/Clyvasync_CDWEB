@@ -24,6 +24,7 @@
         <module>notification-service</module>
         <module>gateway-service</module>
         <module>profile-service</module>
+        <module>common-security</module>
     </modules>
 
     <properties>

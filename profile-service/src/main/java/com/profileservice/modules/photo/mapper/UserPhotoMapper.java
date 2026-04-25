@@ -12,5 +12,5 @@ import java.util.List;
 public interface UserPhotoMapper extends BaseMapper<UserPhoto> {
     @Select("SELECT photo_type, photo_url FROM user_photos " +
             "WHERE user_id = #{userId} AND is_current = true")
-    List<UserPhoto> findCurrentPhotos(@Param("userId") Long userId);
+    List<UserPhoto> findCurrentPhotos(@Param("userId") String userId);
 }

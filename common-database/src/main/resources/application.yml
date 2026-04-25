@@ -1,0 +1,6 @@
+app:
+  spicedb:
+    host: ${SPICEDB_HOST:localhost}
+    port: ${SPICEDB_PORT:50051}
+    token: ${SPICEDB_SECRET:65906590}
+    use-ssl: false # Thêm cái này để dễ switch giữa môi trường dev/prod

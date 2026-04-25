@@ -46,6 +46,47 @@ services:
     networks:
       - clyvasync-net
 
+  # --- SPICEDB SETUP ---
+  db-init:
+    image: postgres:15
+    environment:
+      PGPASSWORD: ${PASSWORD_RSQL:-password}
+    command: >
+      sh -c "psql -h postgres -U ${USERNAME_RSQL} -d postgres -c 'CREATE DATABASE spicedb;' || true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - clyvasync-net
+
+  spicedb-migrate:
+    image: authzed/spicedb:latest
+    command: >
+      migrate head 
+      --datastore-engine postgres 
+      --datastore-conn-uri "postgres://${USERNAME_RSQL}:${PASSWORD_RSQL}@postgres:5432/spicedb?sslmode=disable"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - clyvasync-net
+
+  spicedb:
+    image: authzed/spicedb:latest
+    container_name: spicedb
+    restart: always
+    command: >
+      serve 
+      --datastore-engine postgres 
+      --datastore-conn-uri "postgres://${USERNAME_RSQL}:${PASSWORD_RSQL}@postgres:5432/spicedb?sslmode=disable"
+      --grpc-preshared-key "${SPICEDB_KEY}"
+      --http-enabled
+    depends_on:
+      spicedb-migrate:
+        condition: service_completed_successfully
+    networks:
+      - clyvasync-net
+
 networks:
   clyvasync-net:
     driver: bridge
