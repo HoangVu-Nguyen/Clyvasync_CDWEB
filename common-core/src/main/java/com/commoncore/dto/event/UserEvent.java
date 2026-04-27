@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @NoArgsConstructor
-public class UserEventDTO implements Serializable {
+public class UserEvent implements Serializable {
     // Nhóm 1: Dùng cho cả Email và Profile
     private String email;
     private String type; // REGISTER_OTP, FORGOT_PASSWORD, USER_REGISTERED...

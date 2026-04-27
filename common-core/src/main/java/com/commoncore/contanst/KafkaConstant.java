@@ -10,4 +10,5 @@ public class KafkaConstant {
     public static final String USER_ACTIVATED = "identity.user.activated";
     public static final String FORGOT_PASSWORD = "identity.user.forgot-password";
     public static final String USER_EVENTS_TOPIC = "user-events-topic";
+    public static final String MEDIA_UPDATE_TOPIC = "media-update-topic";
 }

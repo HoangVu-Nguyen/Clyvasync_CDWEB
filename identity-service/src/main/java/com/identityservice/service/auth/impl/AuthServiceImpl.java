@@ -4,10 +4,12 @@ package com.identityservice.service.auth.impl;
 
 import com.commoncore.contanst.KafkaConstant;
 import com.commoncore.dto.event.BaseEvent;
-import com.commoncore.dto.event.UserEventDTO;
+import com.commoncore.dto.event.UserEvent;
+import com.commoncore.enums.event.EventType;
 import com.commoncore.enums.otp.OtpType;
 import com.commoncore.exception.AppException;
 import com.commoncore.exception.ResultCode;
+import com.commoncore.producer.CoreKafkaProducer;
 import com.identityservice.dto.request.LoginRequest;
 import com.identityservice.dto.request.RegisterRequest;
 import com.identityservice.dto.request.ResendVerificationRequest;
@@ -16,7 +18,6 @@ import com.identityservice.dto.response.TokenResponse;
 import com.identityservice.entity.auth.entity.UserCredential;
 import com.identityservice.enums.auth.RoleName;
 import com.identityservice.enums.cache.RedisKeyType;
-import com.identityservice.producer.AuthProducer;
 import com.identityservice.security.password.PasswordService;
 import com.identityservice.security.util.JwtUtil;
 import com.identityservice.service.auth.AuthService;
@@ -36,7 +37,6 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -53,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRoleService userRoleService; // Cần cái này để lấy/gán Role
     private final OtpService otpService;
     private final ApplicationEventPublisher eventPublisher;
-    private final AuthProducer authProducer; // RabbitMQ Producer
+    private final CoreKafkaProducer coreKafkaProducer;
 
     @Override
     public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
@@ -138,27 +138,27 @@ public class AuthServiceImpl implements AuthService {
         cacheService.setProcessLimit(email, RedisKeyType.SEND_EMAIL_LIMIT);
 
 
-        BaseEvent<UserEventDTO> profileSyncEvent = BaseEvent.<UserEventDTO>builder()
+        BaseEvent<UserEvent> profileSyncEvent = BaseEvent.<UserEvent>builder()
                 .eventId(UUID.randomUUID().toString())
-                .type("USER_REGISTERED")
-                .payload(UserEventDTO.builder()
+                .type(EventType.USER_REGISTERED)
+                .payload(UserEvent.builder()
                         .userId(savedUser.getId())
                         .username(request.getUsername())
                         .birthDate(request.getBirthDate())
                         .build())
                 .build();
 
-        BaseEvent<UserEventDTO> emailOtpEvent = BaseEvent.<UserEventDTO>builder()
+        BaseEvent<UserEvent> emailOtpEvent = BaseEvent.<UserEvent>builder()
                 .eventId(UUID.randomUUID().toString())
-                .type(OtpType.ACTIVATION.name())
-                .payload(UserEventDTO.builder()
+                .type(EventType.REGISTER_OTP)
+                .payload(UserEvent.builder()
                         .email(email)
                         .code(otp)
                         .build())
                 .build();
 
-        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, savedUser.getId(), profileSyncEvent);
-        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, email, emailOtpEvent);
+        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, savedUser.getId(), profileSyncEvent);
+        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, email, emailOtpEvent);
 
         log.info(">>>> Đăng ký thành công User: {} | Profile & OTP events dispatched", email);
     }
@@ -261,8 +261,8 @@ public class AuthServiceImpl implements AuthService {
 
 
 
-        UserEventDTO eventPayload  = UserEventDTO.builder().email(email).code(otp).type(type.name()).build();
-        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,request.getEmail(),eventPayload);
+        UserEvent eventPayload  = UserEvent.builder().email(email).code(otp).type(type.name()).build();
+        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,request.getEmail(),eventPayload);
 
         log.info("Đã gửi lại OTP (Type: {}) thành công cho: {}", type.name(), email);
     }
@@ -305,9 +305,9 @@ public class AuthServiceImpl implements AuthService {
         cacheService.setProcessLimit(cleanEmail, RedisKeyType.SEND_EMAIL_LIMIT);
 
 
-        UserEventDTO eventPayload  = UserEventDTO.builder().email(email).code(otp).type(OtpType.RECOVERY.name()).build();
+        UserEvent eventPayload  = UserEvent.builder().email(email).code(otp).type(OtpType.RECOVERY.name()).build();
 
-        authProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,email,eventPayload);
+        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC,email,eventPayload);
 
         log.info("Yêu cầu khôi phục mật khẩu cho email: {}", cleanEmail);
     }

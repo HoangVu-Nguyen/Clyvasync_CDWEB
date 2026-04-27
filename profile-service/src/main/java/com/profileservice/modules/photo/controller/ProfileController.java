@@ -1,7 +1,7 @@
 package com.profileservice.modules.photo.controller;
 
 import com.commoncore.dto.response.ApiResponse;
-import com.commoncore.security.annotation.CurrentUserId;
+import com.commonsecurity.secutiry.annotation.CurrentUserId;
 import com.profileservice.modules.photo.dto.response.UserHeaderResponse;
 import com.profileservice.modules.photo.dto.response.UserProfileResponse;
 import com.profileservice.modules.photo.service.IProfileService;

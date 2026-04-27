@@ -11,22 +11,28 @@
         <module name="discovery-server" />
         <module name="gateway-service" />
         <module name="common-database" />
+        <module name="media-service" />
         <module name="profile-service" />
         <module name="identity-service" />
         <module name="notification-service" />
         <module name="common-core" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="mdia-service" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="Clyvasync" options="" />
+      <module name="Clyvasync" options="-parameters" />
       <module name="common-core" options="-parameters" />
       <module name="common-database" options="-parameters" />
       <module name="common-security" options="-parameters" />
       <module name="discovery-server" options="-parameters" />
       <module name="gateway-service" options="-parameters" />
       <module name="identity-service" options="-parameters" />
+      <module name="mdia-service" options="-parameters" />
+      <module name="media-service" options="-parameters" />
       <module name="notification-service" options="-parameters" />
       <module name="profile-service" options="-parameters" />
     </option>

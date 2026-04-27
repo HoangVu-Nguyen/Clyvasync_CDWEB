@@ -7,4 +7,5 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE DATABASE clyvasync_identity_db;
     CREATE DATABASE clyvasync_profile_db;
     CREATE DATABASE clyvasync_post_db;
+    CREATE DATABASE clyvasync_photo_db;
 EOSQL

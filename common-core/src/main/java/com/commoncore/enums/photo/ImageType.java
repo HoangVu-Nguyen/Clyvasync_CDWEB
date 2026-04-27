@@ -1,4 +1,4 @@
-package com.profileservice.modules.photo.enums;
+package com.commoncore.enums.photo;
 
 
 public enum ImageType {

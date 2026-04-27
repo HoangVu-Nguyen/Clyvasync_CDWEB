@@ -8,6 +8,7 @@
         <artifactId>clyvasync</artifactId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
+
     </parent>
 
     <artifactId>gateway-service</artifactId>
@@ -53,6 +54,7 @@
             <groupId>com</groupId>
             <artifactId>common-core</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>

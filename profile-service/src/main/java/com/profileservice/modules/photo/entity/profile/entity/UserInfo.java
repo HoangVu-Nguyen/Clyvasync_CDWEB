@@ -33,6 +33,10 @@ public class UserInfo {
 
     @TableField("location")
     private String location;
+    @TableField("avatar_url")
+    private String avatarUrl;
+    @TableField("cover_url")
+    private String coverUrl;
 
     @TableField("birth_date")
     private LocalDate birthDate;

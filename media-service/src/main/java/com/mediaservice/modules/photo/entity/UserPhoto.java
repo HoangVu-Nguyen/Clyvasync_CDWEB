@@ -1,10 +1,9 @@
-package com.profileservice.modules.photo.entity.profile.entity;
+package com.mediaservice.modules.photo.entity;
 
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.commoncore.enums.photo.ImageType;
 import com.commoncore.enums.privacy.Privacy;
-import com.profileservice.modules.photo.enums.ImageType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

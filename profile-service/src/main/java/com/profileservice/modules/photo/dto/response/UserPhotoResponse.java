@@ -1,8 +1,8 @@
 package com.profileservice.modules.photo.dto.response;
 
 
+import com.commoncore.enums.photo.ImageType;
 import com.commoncore.enums.privacy.Privacy;
-import com.profileservice.modules.photo.enums.ImageType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

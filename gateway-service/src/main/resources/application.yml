@@ -8,8 +8,11 @@ server:
     key-alias: my-ssl-cert
 
 spring:
+  main:
+    web-application-type: reactive
   cloud:
     gateway:
+
       default-filters:
         - PreserveHostHeader
       globalcors:
