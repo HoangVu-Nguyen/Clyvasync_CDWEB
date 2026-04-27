@@ -282,6 +282,7 @@ public class AuthServiceImpl implements AuthService {
         if (!storedOtp.equals(otp)) {
             throw new AppException(ResultCode.OTP_INVALID);
         }
+        cacheService.delete(RedisKeyType.VERIFY_ACCOUNT.getFullKey(cleanEmail));
 
         log.info("Xác thực mã OTP khôi phục hợp lệ cho email: {}", cleanEmail);
     }

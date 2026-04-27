@@ -1,5 +1,6 @@
 package com.mediaservice.modules.photo.consumer;
 
+
 import com.commoncore.contanst.KafkaConstant;
 import com.commoncore.dto.event.BaseEvent;
 import com.commoncore.dto.event.UserEvent;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
 
 @Component
 @Slf4j
@@ -18,7 +20,7 @@ public class MediaEventConsumer {
 
     @KafkaListener(
             topics = KafkaConstant.USER_EVENTS_TOPIC,
-            groupId = "media-group" // Dùng group-id riêng để cả 2 service cùng nhận được 1 tin nhắn
+            groupId = "media-group"
     )
     public void listenUserEvents(BaseEvent<UserEvent> event) {
         log.info(">>>> [KAFKA MEDIA] Processing event: {} for user: {}",

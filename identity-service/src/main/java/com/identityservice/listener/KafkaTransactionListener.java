@@ -6,6 +6,7 @@ import com.commoncore.dto.event.UserEvent;
 import com.commoncore.producer.CoreKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -17,14 +18,14 @@ public class KafkaTransactionListener {
 
     private final CoreKafkaProducer coreKafkaProducer;
 
-
+    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleKafkaPublishAfterCommit(BaseEvent<UserEvent> event) {
+    public void handleKafkaPublishAfterCommit(BaseEvent<?> event) {
+        log.info(">>>> Đã nhận được event sau khi DB Commit thành công!");
 
-        String key = (event.getPayload().getUserId() != null)
-                ? event.getPayload().getUserId()
-                : event.getPayload().getEmail();
-
-        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, key, event);
+        if (event.getPayload() instanceof UserEvent payload) {
+            String key = (payload.getUserId() != null) ? payload.getUserId() : payload.getEmail();
+            coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, key, (BaseEvent<UserEvent>) event);
+        }
     }
 }

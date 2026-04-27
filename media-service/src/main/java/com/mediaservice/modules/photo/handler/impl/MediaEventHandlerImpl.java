@@ -1,8 +1,8 @@
 package com.mediaservice.modules.photo.handler.impl;
 
+import com.commoncore.contanst.ImageConstants;
 import com.commoncore.dto.event.UserEvent;
 import com.commoncore.enums.photo.ImageType;
-import com.mediaservice.modules.photo.constant.ImageConstants;
 import com.mediaservice.modules.photo.entity.UserPhoto;
 import com.mediaservice.modules.photo.mapper.UserPhotoMapper;
 import lombok.RequiredArgsConstructor;
