@@ -63,8 +63,7 @@ public class SecurityConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
         // Kích hoạt OpenID Connect 1.0 (Bao gồm Logout Endpoint)
-        http.securityMatcher("/oauth2/**", "/.well-known/**", "/connect/**")
-                .getConfigurer(OAuth2AuthorizationServerConfigurer.class)
+        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(oidc -> oidc
                         .logoutEndpoint(Customizer.withDefaults())
                 );
@@ -84,6 +83,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     // ==============================================================================
     // 2. FILTER CHAIN CHO WEB APP VÀ API (Resource Server)

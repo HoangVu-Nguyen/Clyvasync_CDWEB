@@ -74,14 +74,21 @@
         </dependency>
 
         <dependency>
-            <groupId>com</groupId>
+            <groupId>com.clyvasync</groupId>
             <artifactId>common-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
+
         <dependency>
-            <groupId>com</groupId>
+            <groupId>com.clyvasync</groupId>
             <artifactId>common-database</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.clyvasync</groupId>
+            <artifactId>common-security</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
         <dependency>

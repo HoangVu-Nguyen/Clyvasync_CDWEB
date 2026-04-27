@@ -33,7 +33,7 @@ spring:
         - id: auth-server-authorize
           uri: lb://identity-service
           predicates:
-            - Path=/.well-known/openid-configuration,/oauth2/authorize,/oauth2/token,/oauth2/jwks,/oauth2/revoke,/oauth2/introspect,/userinfo
+            - Path=/.well-known/openid-configuration,/oauth2/authorize,/oauth2/token,/oauth2/jwks,/oauth2/revoke,/oauth2/introspect,/userinfo,/connect/**
         - id: auth-server-login
           uri: lb://identity-service
           predicates:
