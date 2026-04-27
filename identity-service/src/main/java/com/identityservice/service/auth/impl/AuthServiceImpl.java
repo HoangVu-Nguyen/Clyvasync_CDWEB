@@ -157,8 +157,8 @@ public class AuthServiceImpl implements AuthService {
                         .build())
                 .build();
 
-        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, savedUser.getId(), profileSyncEvent);
-        coreKafkaProducer.sendEvent(KafkaConstant.USER_EVENTS_TOPIC, email, emailOtpEvent);
+        eventPublisher.publishEvent(profileSyncEvent);
+        eventPublisher.publishEvent(emailOtpEvent);
 
         log.info(">>>> Đăng ký thành công User: {} | Profile & OTP events dispatched", email);
     }
