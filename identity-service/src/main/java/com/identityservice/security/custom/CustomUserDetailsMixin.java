@@ -8,5 +8,4 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class CustomUserDetailsMixin {
-    // Không cần viết gì trong này cả
 }

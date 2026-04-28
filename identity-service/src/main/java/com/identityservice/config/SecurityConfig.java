@@ -53,35 +53,7 @@ public class SecurityConfig {
     private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
     private final JdbcTemplate jdbcTemplate;
 
-    // ==============================================================================
-    // 1. FILTER CHAIN CHO OAUTH2 / OIDC (Bao gồm Endpoint /connect/logout)
-    // ==============================================================================
-    @Bean
-    @Order(1) // Đặt ưu tiên cao nhất
-    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
-        // Kích hoạt OpenID Connect 1.0 (Bao gồm Logout Endpoint)
-        http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(oidc -> oidc
-                        .logoutEndpoint(Customizer.withDefaults())
-                );
-
-        http
-                // Nếu chưa đăng nhập mà truy cập endpoint của Auth Server, đá về trang login
-                .exceptionHandling(exceptions -> exceptions
-                        .defaultAuthenticationEntryPointFor(
-                                new LoginUrlAuthenticationEntryPoint("/login"),
-                                new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
-                        )
-                )
-                // Chấp nhận truy cập bằng JWT (dành cho UserInfo endpoint)
-                .oauth2ResourceServer(resourceServer -> resourceServer
-                        .jwt(Customizer.withDefaults())
-                );
-
-        return http.build();
-    }
 
 
     // ==============================================================================
@@ -115,12 +87,6 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .failureHandler(customAuthenticationFailureHandler)
                         .permitAll()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(Customizer.withDefaults())
-                )
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
                 );
 
 
@@ -140,7 +106,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(com.nimbusds.jose.jwk.source.JWKSource<com.nimbusds.jose.proc.SecurityContext> jwkSource) {
-        NimbusJwtDecoder jwtDecoder = (NimbusJwtDecoder) org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
+        NimbusJwtDecoder jwtDecoder = (NimbusJwtDecoder) OAuth2AuthorizationServerConfiguration.jwtDecoder(jwkSource);
         OAuth2TokenValidator<Jwt> withClockSkew = new DelegatingOAuth2TokenValidator<>(
                 new JwtTimestampValidator(java.time.Duration.ofSeconds(60)),
                 new JwtIssuerValidator("https://localhost:8443")

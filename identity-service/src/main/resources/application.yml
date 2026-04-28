@@ -27,3 +27,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
   server-url: https://localhost:8443/identity-service
+
+clyvasync:
+  auth:
+    client-id: ${AUTH_CLIENT_ID:clyvasync-client}
+    client-secret: ${AUTH_CLIENT_SECRET:default-secret-must-change}
+    redirect-uri: ${AUTH_REDIRECT_URI:https://localhost:4200/callback}
+    post-logout-uri: ${AUTH_LOGOUT_URI:https://localhost:4200/login}

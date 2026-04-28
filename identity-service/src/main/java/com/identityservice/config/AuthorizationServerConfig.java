@@ -9,6 +9,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -59,6 +60,17 @@ public class AuthorizationServerConfig {
 
     private final PasswordEncoder passwordEncoder;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate; // Thêm JdbcTemplate
+    @Value("${clyvasync.auth.client-id}")
+    private String clientId;
+
+    @Value("${clyvasync.auth.client-secret}")
+    private String clientSecret;
+
+    @Value("${clyvasync.auth.redirect-uri}")
+    private String redirectUri;
+
+    @Value("${clyvasync.auth.post-logout-uri}")
+    private String postLogoutUri;
 
     /**
      * CHAIN 1: Giao thức OAuth2
@@ -137,25 +149,29 @@ public class AuthorizationServerConfig {
     public RegisteredClientRepository registeredClientRepository() {
         JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
 
-        if (registeredClientRepository.findByClientId("clyvasync-client") == null) {
+        if (registeredClientRepository.findByClientId(clientId) == null) {
             RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                    .clientId("clyvasync-client")
-                    .clientSecret(passwordEncoder.encode("secret-khong-ma-hoa"))
+                    .clientId(clientId)
+                    .clientSecret(passwordEncoder.encode(clientSecret))
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                    .redirectUri("https://localhost:4200/callback")
-                    .postLogoutRedirectUri("https://localhost:4200/login")
+                    .redirectUri(redirectUri)
+                    .postLogoutRedirectUri(postLogoutUri)
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
                     .scope(OidcScopes.EMAIL)
                     .scope("offline_access")
-                    .clientSettings(ClientSettings.builder().requireProofKey(true).requireAuthorizationConsent(true).build())
+                    .clientSettings(ClientSettings.builder()
+                            .requireProofKey(true)
+                            .requireAuthorizationConsent(true)
+                            .build())
                     .tokenSettings(TokenSettings.builder()
                             .accessTokenTimeToLive(Duration.ofMinutes(60))
                             .refreshTokenTimeToLive(Duration.ofDays(30))
-                            .reuseRefreshTokens(true).build())
+                            .reuseRefreshTokens(true)
+                            .build())
                     .build();
             registeredClientRepository.save(oidcClient);
         }
