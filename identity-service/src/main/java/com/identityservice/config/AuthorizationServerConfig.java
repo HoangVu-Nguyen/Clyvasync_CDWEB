@@ -149,29 +149,26 @@ public class AuthorizationServerConfig {
     public RegisteredClientRepository registeredClientRepository() {
         JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
 
-        if (registeredClientRepository.findByClientId(clientId) == null) {
+        // Kiểm tra nếu chưa có client thì mới lưu vào để tránh lỗi duplicate khi restart
+        if (registeredClientRepository.findByClientId("clyvasync-client") == null) {
             RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                    .clientId(clientId)
-                    .clientSecret(passwordEncoder.encode(clientSecret))
+                    .clientId("clyvasync-client")
+                    .clientSecret(passwordEncoder.encode("secret-khong-ma-hoa"))
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                    .redirectUri(redirectUri)
-                    .postLogoutRedirectUri(postLogoutUri)
+                    .redirectUri("https://localhost:4200/callback")
+                    .postLogoutRedirectUri("https://localhost:4200/login")
                     .scope(OidcScopes.OPENID)
                     .scope(OidcScopes.PROFILE)
                     .scope(OidcScopes.EMAIL)
                     .scope("offline_access")
-                    .clientSettings(ClientSettings.builder()
-                            .requireProofKey(true)
-                            .requireAuthorizationConsent(true)
-                            .build())
+                    .clientSettings(ClientSettings.builder().requireProofKey(true).requireAuthorizationConsent(true).build())
                     .tokenSettings(TokenSettings.builder()
                             .accessTokenTimeToLive(Duration.ofMinutes(60))
                             .refreshTokenTimeToLive(Duration.ofDays(30))
-                            .reuseRefreshTokens(true)
-                            .build())
+                            .reuseRefreshTokens(true).build())
                     .build();
             registeredClientRepository.save(oidcClient);
         }

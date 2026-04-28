@@ -4,6 +4,7 @@ import com.commoncore.contanst.ImageConstants;
 import com.commoncore.dto.event.UserEvent;
 import com.commoncore.enums.photo.ImageType;
 import com.mediaservice.modules.photo.entity.UserPhoto;
+import com.mediaservice.modules.photo.handler.MediaEventHandler;
 import com.mediaservice.modules.photo.mapper.UserPhotoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class MediaEventHandlerImpl {
+public class MediaEventHandlerImpl implements MediaEventHandler {
     private final UserPhotoMapper userPhotoMapper;
 
     @Transactional(rollbackFor = Exception.class)

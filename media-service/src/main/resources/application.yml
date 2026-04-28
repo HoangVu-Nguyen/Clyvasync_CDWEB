@@ -1,9 +1,9 @@
 server:
-  port: 8084
+  port: 8085
   forward-headers-strategy: framework
 spring:
   application:
-    name: profile-service
+    name: media-service
   datasource:
     url: jdbc:postgresql://localhost:5432/clyvasync_photo_db
     username: ${USERNAME_RSQL}
@@ -60,3 +60,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
   server-url: https://localhost:8443/media-service
+
+aws:
+  s3:
+    access-key: ${S3_ACCESS_KEY}
+    secret-key: ${S3_SECRET_KEY}
+    region: ${S3_REGION}
+    bucket-name: ${BUCKET_NAME}

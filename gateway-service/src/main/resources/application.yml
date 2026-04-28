@@ -48,6 +48,18 @@ spring:
             - Path=/profile-service/**
           filters:
             - RewritePath=/profile-service/(?<segment>.*), /${segment}
+        - id: media-service
+          uri: lb://media-service
+          predicates:
+            - Path=/api/v1/media/**
+        - id: media-service-docs
+          uri: lb://media-service
+          predicates:
+            - Path=/media-service/**
+          filters:
+            - RewritePath=/media-service/(?<segment>.*), /${segment}
+
+
 springdoc:
   api-docs:
     enabled: false
@@ -58,6 +70,8 @@ springdoc:
         url: /identity-service/v3/api-docs
       - name: Profile Service
         url: /profile-service/v3/api-docs
+      - name: Media Service
+        url: /media-service/v3/api-docs
 
 
 
