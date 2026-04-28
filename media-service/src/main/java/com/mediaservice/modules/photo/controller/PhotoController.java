@@ -5,6 +5,7 @@ import com.commonsecurity.secutiry.annotation.CurrentUserId;
 import com.mediaservice.modules.photo.dto.request.UploadRequest;
 import com.mediaservice.modules.photo.dto.response.PresignedUrlResponse;
 import com.mediaservice.modules.photo.service.IS3Service;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,16 +18,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class PhotoController {
     private final IS3Service s3Service;
-    @PostMapping("/presigned-url")
-    public ApiResponse<?> getUploadUrl(@RequestBody UploadRequest request, @CurrentUserId String userId) {
+   @PostMapping("/presigned-url")
+    public ApiResponse<PresignedUrlResponse> getUploadUrl(
+            @RequestBody @Valid UploadRequest request,
+            @CurrentUserId String userId) {
 
-        // Tạo objectKey theo cấu trúc: users/userId/avatars/filename
         String objectKey = String.format("users/%s/%s/%s",
-                userId, request.getImageType().name().toLowerCase(), request.getFileName());
+                userId,
+                request.getImageType().name().toLowerCase(),
+                request.getFileName());
 
-        String uploadUrl = s3Service.generatePresignedPutUrl(objectKey, request.getContentType());
+        String uploadUrl = s3Service.generatePresignedPutUrl(
+                objectKey,
+                request.getContentType(),
+                request.getFileSize());
 
-        // Trả về cho FE cả link upload và objectKey để sau này nó lưu vào Profile Service
-        return  ApiResponse.success(new PresignedUrlResponse(uploadUrl, objectKey));
+        return ApiResponse.success(new PresignedUrlResponse(uploadUrl, objectKey));
     }
 }
