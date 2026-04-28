@@ -25,6 +25,8 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
@@ -68,16 +70,15 @@ public class AuthorizationServerConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults()) // <--- ĐÓNG CHẤM PHẨY Ở ĐÂY ĐỂ NGẮT CHUỖI BUILDER
+                .oidc(Customizer.withDefaults())
 
-                // TẠM THỜI COMMENT TOÀN BỘ CUSTOM HANDLER ĐỂ XEM SPRING CÓ TỰ ĐẺ RA REFRESH TOKEN KHÔNG
+
 
                 .tokenEndpoint(tokenEndpoint -> tokenEndpoint.accessTokenResponseHandler((request, response, authentication) -> {
                     if (authentication instanceof OAuth2AccessTokenAuthenticationToken tokenAuth) {
                         var accessToken = tokenAuth.getAccessToken();
                         var refreshToken = tokenAuth.getRefreshToken();
 
-                        // --- ĐOẠN LOG ĐỂ KIỂM TRA ---
                         System.out.println("DEBUG: Access Token Value: " + accessToken.getTokenValue());
                         if (refreshToken != null) {
                             System.out.println("DEBUG: Refresh Token Value (Gửi về Client): " + refreshToken.getTokenValue());
@@ -91,16 +92,14 @@ public class AuthorizationServerConfig {
                             idTokenValue = tokenAuth.getAdditionalParameters().get("id_token").toString();
                         }
 
-                        // Set Cookie HttpOnly
                         if (refreshToken != null) {
-                            // Vũ lưu ý: Nếu chỗ này vẫn in ra cái UUID ngắn, ông phải check lại database
                             String cookieValue = "refresh_token=" + refreshToken.getTokenValue()
                                     + "; HttpOnly; Secure;Path=/; Max-Age=" + (60 * 60 * 24 * 30) + "; SameSite=Lax";
                             response.addHeader("Set-Cookie", cookieValue);
                         }
 
                         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                        response.setCharacterEncoding("UTF-8"); // Đảm bảo không lỗi font
+                        response.setCharacterEncoding("UTF-8");
 
                         long expiresIn = accessToken.getExpiresAt().getEpochSecond() - accessToken.getIssuedAt().getEpochSecond();
 
@@ -132,16 +131,12 @@ public class AuthorizationServerConfig {
         return http.build();
     }
 
-    /**
-     * CHAIN 2: Xác thực người dùng (Form Login)
-     * Xử lý việc hiển thị Form Login và lưu trữ Session để tiếp tục luồng OAuth2.
-     */
+
 
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
 
-        // Kiểm tra nếu chưa có client thì mới lưu vào để tránh lỗi duplicate khi restart
         if (registeredClientRepository.findByClientId("clyvasync-client") == null) {
             RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId("clyvasync-client")
@@ -221,4 +216,5 @@ public class AuthorizationServerConfig {
         }
         return keyPair;
     }
+
 }

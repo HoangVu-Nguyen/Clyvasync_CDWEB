@@ -44,7 +44,6 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-// XÓA @Order(2) ở đây đi vì chúng ta sẽ set Order trực tiếp vào từng Bean
 @RequiredArgsConstructor
 public class SecurityConfig {
 
