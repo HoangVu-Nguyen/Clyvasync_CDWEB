@@ -30,4 +30,5 @@ public class PhotoController {
             @CurrentUserId String userId) {
         return ApiResponse.success(photoService.prepareBatchUpload(userId, request));
     }
+
 }

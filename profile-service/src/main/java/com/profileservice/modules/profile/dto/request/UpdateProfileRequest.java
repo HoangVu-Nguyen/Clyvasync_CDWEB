@@ -17,6 +17,8 @@ public class UpdateProfileRequest {
 
     @Size(max = 255, message = "Tiểu sử (Bio) không được vượt quá 255 ký tự")
     private String bio;
+    private String location;
+    private String website;
 
 
 

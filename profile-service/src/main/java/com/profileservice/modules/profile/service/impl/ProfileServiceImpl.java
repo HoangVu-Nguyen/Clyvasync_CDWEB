@@ -33,7 +33,11 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -107,6 +111,7 @@ public class ProfileServiceImpl implements IProfileService {
                 .avatarUrl(mediaUrlResolver.resolve(userInfo.getAvatarUrl() != null ? userInfo.getAvatarUrl() : ImageConstants.AVATAR_DEFAULT))
                 .coverUrl(mediaUrlResolver.resolve(userInfo.getCoverUrl() != null ? userInfo.getCoverUrl() : ImageConstants.COVER_DEFAULT))
                 .isOwner(isOwner)
+                .website(userInfo.getWebsite())
                 .canViewPrivateInfo(canViewBasic)
                 .privacy(userInfo.getPrivacy())
                 .bio(canViewBasic ? userInfo.getBio() : "This profile is private")
@@ -142,39 +147,66 @@ public class ProfileServiceImpl implements IProfileService {
     @Override
     @Transactional
     public void updateProfile(String userId, UpdateProfileRequest request) {
-        log.info("Updating profile for user: {}", request);
         UserInfo userInfo = userInfoMapper.selectById(userId);
         List<MediaUpdateEvent> mediaUpdateEvents = new ArrayList<>();
 
-        // 1. Xử lý Avatar
-        if (request.getAvatarUrl() != null && !request.getAvatarUrl().equals(userInfo.getAvatarUrl())) {
-            userInfo.setAvatarUrl(request.getAvatarUrl());
-            mediaUpdateEvents.add(MediaUpdateEvent.builder()
-                    .userId(userId)
-                    .url(request.getAvatarUrl())
-                    .type(ImageType.AVATAR)
-                    .build());
+        boolean isChanged = false;
+
+
+        if (isPhotoChanged(request.getAvatarUrl(), userInfo.getAvatarUrl())) {
+            String newKey = extractKeyFromUrl(request.getAvatarUrl());
+            userInfo.setAvatarUrl(newKey);
+            mediaUpdateEvents.add(createMediaEvent(userId, newKey, ImageType.AVATAR));
+            isChanged = true;
         }
 
-        // 2. Xử lý Cover
-        if (request.getCoverUrl() != null && !request.getCoverUrl().equals(userInfo.getCoverUrl())) {
-            // Đã fix lỗi copy nhầm getAvatarUrl thành getCoverUrl cho Vũ
-            mediaUpdateEvents.add(MediaUpdateEvent.builder()
-                    .userId(userId)
-                    .url(request.getCoverUrl())
-                    .type(ImageType.COVER)
-                    .build());
-            userInfo.setCoverUrl(request.getCoverUrl());
+        if (isPhotoChanged(request.getCoverUrl(), userInfo.getCoverUrl())) {
+            String newKey = extractKeyFromUrl(request.getCoverUrl());
+            userInfo.setCoverUrl(newKey);
+            mediaUpdateEvents.add(createMediaEvent(userId, newKey, ImageType.COVER));
+            isChanged = true;
         }
 
-        userInfo.setBio(request.getBio());
+        isChanged |= updateFieldIfChanged(request.getBio(), userInfo::getBio, userInfo::setBio);
+        isChanged |= updateFieldIfChanged(request.getLocation(), userInfo::getLocation, userInfo::setLocation);
+        isChanged |= updateFieldIfChanged(request.getWebsite(), userInfo::getWebsite, userInfo::setWebsite);
 
-        // 3. Thực hiện Update DB
-        userInfoMapper.updateById(userInfo);
+        if (isChanged) {
+            userInfoMapper.updateById(userInfo);
+            log.info(">>>> [PROFILE] Profile updated for user: {}", userId);
+        }
 
-        // 4. Nếu có ảnh mới, phát sự kiện NỘI BỘ chờ Commit
         if (!mediaUpdateEvents.isEmpty()) {
             eventPublisher.publishEvent(new ProfileMediaCommitEvent(mediaUpdateEvents));
         }
+    }
+
+
+    private boolean updateFieldIfChanged(String newValue, Supplier<String> getter, Consumer<String> setter) {
+        if (newValue != null && !Objects.equals(newValue, getter.get())) {
+            setter.accept(newValue);
+            return true;
+        }
+        return false;
+    }
+
+
+
+    private MediaUpdateEvent createMediaEvent(String userId, String url, ImageType type) {
+        return MediaUpdateEvent.builder().userId(userId).url(url).type(type).build();
+    }
+    private boolean isPhotoChanged(String requestUrl, String currentKeyInDb) {
+        if (requestUrl == null) return false;
+        String extractedKey = extractKeyFromUrl(requestUrl);
+
+        return !Objects.equals(extractedKey, currentKeyInDb);
+    }
+
+    private String extractKeyFromUrl(String url) {
+        if (url == null) return null;
+        if (url.contains("users/")) {
+            return url.substring(url.indexOf("users/"));
+        }
+        return url;
     }
 }
