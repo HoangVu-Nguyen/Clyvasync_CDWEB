@@ -3,6 +3,7 @@ package com.profileservice.modules.profile.controller;
 import com.commoncore.dto.response.ApiResponse;
 import com.commonsecurity.secutiry.annotation.CurrentUserId;
 
+import com.profileservice.modules.profile.dto.request.UpdateProfileRequest;
 import com.profileservice.modules.profile.dto.response.UserHeaderResponse;
 import com.profileservice.modules.profile.dto.response.UserProfileResponse;
 import com.profileservice.modules.profile.service.IProfileService;
@@ -44,5 +45,10 @@ public class ProfileController {
     public ApiResponse<UserProfileResponse> getMyProfile(@CurrentUserId String userId) {
         // Chính mình xem mình nên ownerId và viewerId là một
         return ApiResponse.success(profileService.getProfileDetail(userId, userId));
+    }
+    @PutMapping("")
+    public ApiResponse<Void> updateProfile(@CurrentUserId String userId, @RequestBody UpdateProfileRequest request) {
+        profileService.updateProfile(userId,request);
+        return ApiResponse.success();
     }
 }

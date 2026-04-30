@@ -6,7 +6,8 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootApplication(scanBasePackages = {
         "com.profileservice",
-        "com.commonlibrary"
+        "com.commonlibrary",
+        "com.commoncore"
 })
 @Import(com.commonsecurity.config.SecurityConfig.class)
 public class ProfileServiceApplication {

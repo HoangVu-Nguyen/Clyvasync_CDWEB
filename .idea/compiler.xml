@@ -31,6 +31,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="Clyvasync" target="17" />
       <module name="mdia-service" target="17" />
     </bytecodeTargetLevel>
   </component>

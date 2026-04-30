@@ -4,13 +4,20 @@ import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.commoncore.contanst.ImageConstants;
+import com.commoncore.contanst.KafkaConstant;
+import com.commoncore.dto.event.MediaUpdateEvent;
 import com.commoncore.dto.event.UserEvent;
+import com.commoncore.enums.photo.ImageType;
 import com.commoncore.enums.privacy.Privacy;
 import com.commoncore.exception.AppException;
 import com.commoncore.exception.ResultCode;
+import com.commoncore.producer.CoreKafkaProducer;
+import com.commoncore.resolver.MediaUrlResolver;
 import com.commonlibrary.constant.SpiceDBConstants;
 import com.commonlibrary.service.social.SpiceDbService;
 
+import com.profileservice.modules.profile.dto.event.ProfileMediaCommitEvent;
+import com.profileservice.modules.profile.dto.request.UpdateProfileRequest;
 import com.profileservice.modules.profile.dto.response.UserEducationResponse;
 import com.profileservice.modules.profile.dto.response.UserHeaderResponse;
 import com.profileservice.modules.profile.dto.response.UserProfileResponse;
@@ -20,11 +27,14 @@ import com.profileservice.modules.profile.mapper.UserInfoMapper;
 import com.profileservice.modules.profile.service.IProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +44,9 @@ public class ProfileServiceImpl implements IProfileService {
     private final SpiceDbService spiceDBService;
     private final EducationService educationService;
     private final WorkplaceService workplaceService;
+    private final MediaUrlResolver mediaUrlResolver;
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Override
     @Transactional
@@ -91,8 +104,8 @@ public class ProfileServiceImpl implements IProfileService {
         return UserProfileResponse.builder()
                 .userId(ownerId)
                 .username(userInfo.getUsername())
-                .avatarUrl(userInfo.getAvatarUrl() != null ? userInfo.getAvatarUrl() : ImageConstants.AVATAR_DEFAULT)
-                .coverUrl(userInfo.getCoverUrl() != null ? userInfo.getCoverUrl() : ImageConstants.COVER_DEFAULT)
+                .avatarUrl(mediaUrlResolver.resolve(userInfo.getAvatarUrl() != null ? userInfo.getAvatarUrl() : ImageConstants.AVATAR_DEFAULT))
+                .coverUrl(mediaUrlResolver.resolve(userInfo.getCoverUrl() != null ? userInfo.getCoverUrl() : ImageConstants.COVER_DEFAULT))
                 .isOwner(isOwner)
                 .canViewPrivateInfo(canViewBasic)
                 .privacy(userInfo.getPrivacy())
@@ -125,5 +138,43 @@ public class ProfileServiceImpl implements IProfileService {
         if (targetPrivacy == Privacy.PUBLIC) return true;
         if (targetPrivacy == Privacy.FRIENDS) return isFriend;
         return false;
+    }
+    @Override
+    @Transactional
+    public void updateProfile(String userId, UpdateProfileRequest request) {
+        log.info("Updating profile for user: {}", request);
+        UserInfo userInfo = userInfoMapper.selectById(userId);
+        List<MediaUpdateEvent> mediaUpdateEvents = new ArrayList<>();
+
+        // 1. Xử lý Avatar
+        if (request.getAvatarUrl() != null && !request.getAvatarUrl().equals(userInfo.getAvatarUrl())) {
+            userInfo.setAvatarUrl(request.getAvatarUrl());
+            mediaUpdateEvents.add(MediaUpdateEvent.builder()
+                    .userId(userId)
+                    .url(request.getAvatarUrl())
+                    .type(ImageType.AVATAR)
+                    .build());
+        }
+
+        // 2. Xử lý Cover
+        if (request.getCoverUrl() != null && !request.getCoverUrl().equals(userInfo.getCoverUrl())) {
+            // Đã fix lỗi copy nhầm getAvatarUrl thành getCoverUrl cho Vũ
+            mediaUpdateEvents.add(MediaUpdateEvent.builder()
+                    .userId(userId)
+                    .url(request.getCoverUrl())
+                    .type(ImageType.COVER)
+                    .build());
+            userInfo.setCoverUrl(request.getCoverUrl());
+        }
+
+        userInfo.setBio(request.getBio());
+
+        // 3. Thực hiện Update DB
+        userInfoMapper.updateById(userInfo);
+
+        // 4. Nếu có ảnh mới, phát sự kiện NỘI BỘ chờ Commit
+        if (!mediaUpdateEvents.isEmpty()) {
+            eventPublisher.publishEvent(new ProfileMediaCommitEvent(mediaUpdateEvents));
+        }
     }
 }

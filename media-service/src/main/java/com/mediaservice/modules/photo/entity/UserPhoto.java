@@ -4,6 +4,7 @@ package com.mediaservice.modules.photo.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.commoncore.enums.photo.ImageType;
 import com.commoncore.enums.privacy.Privacy;
+import com.commoncore.enums.status.PhotoStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,9 @@ public class UserPhoto {
 
     @TableField("photo_type")
     private ImageType photoType;
+    @TableField("status")
+    @Builder.Default
+    private PhotoStatus status = PhotoStatus.PENDING;
 
     @TableField("privacy")
     @Builder.Default
