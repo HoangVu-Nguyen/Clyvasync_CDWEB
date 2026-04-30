@@ -1,6 +1,8 @@
 package com.mediaservice.modules.photo.service.imp;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.commoncore.dto.event.MediaUpdateEvent;
 import com.commoncore.enums.photo.ImageType;
@@ -8,15 +10,20 @@ import com.commoncore.enums.privacy.Privacy;
 import com.commoncore.enums.status.PhotoStatus;
 import com.commoncore.exception.AppException;
 import com.commoncore.exception.ResultCode;
+import com.commonlibrary.constant.SpiceDBConstants;
+import com.commonlibrary.service.social.SpiceDbService;
 import com.mediaservice.modules.photo.dto.request.BatchUploadRequest;
 import com.mediaservice.modules.photo.dto.request.UploadRequest;
+import com.mediaservice.modules.photo.dto.response.PhotoResponse;
 import com.mediaservice.modules.photo.dto.response.PresignedUrlResponse;
 import com.mediaservice.modules.photo.entity.UserPhoto;
 import com.mediaservice.modules.photo.mapper.UserPhotoMapper;
+import com.mediaservice.modules.photo.mapstruct.PhotoMapper;
 import com.mediaservice.modules.photo.service.IPhotoService;
 import com.mediaservice.modules.photo.service.IS3Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +41,9 @@ public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> impleme
     private final UserPhotoMapper userPhotoMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final IS3Service s3Service;
+    private final SpiceDbService spiceDbService;
+    private final PhotoMapper photoMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void uploadAndSetCurrentPhoto(String userId, String objectKey, ImageType type) {
@@ -45,8 +55,6 @@ public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> impleme
                 .eq(UserPhoto::getIsCurrent, true)
                 .set(UserPhoto::getIsCurrent, false);
         userPhotoMapper.update(null, retireWrapper);
-
-
 
 
         LambdaUpdateWrapper<UserPhoto> confirmWrapper = new LambdaUpdateWrapper<>();
@@ -70,7 +78,7 @@ public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> impleme
                 type,
                 System.currentTimeMillis()
         );
-     //   eventPublisher.publishEvent(event);
+        //   eventPublisher.publishEvent(event);
 
         log.info("Xác nhận ảnh thành công, trạng thái đã chuyển sang ACTIVE");
     }
@@ -123,6 +131,62 @@ public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> impleme
                 request.getImageType().name().toLowerCase(),
                 uniqueSuffix,
                 safeFileName);
+    }
+
+    @Override
+    @Cacheable(value = "latest_authorized_photos", key = "#targetUserId + ':' + #currentUserId + ':' + #limit")
+    @Transactional(readOnly = true)
+    public List<PhotoResponse> getLatestAuthorizedPhotos(String targetUserId, String currentUserId, int limit) {
+        List<UserPhoto> authorizedPhotos = new ArrayList<>();
+        boolean isOwner = targetUserId.equals(currentUserId);
+        int pageNum = 1;
+        int pageSize = 15;
+        while (authorizedPhotos.size() < limit) {
+            Page<UserPhoto> page = new Page<>(pageNum, pageSize);
+            LambdaQueryWrapper<UserPhoto> queryWrapper = new LambdaQueryWrapper<UserPhoto>()
+                    .eq(UserPhoto::getUserId, targetUserId)
+                    .eq(UserPhoto::getStatus, PhotoStatus.ACTIVE)
+                    .orderByDesc(UserPhoto::getCreatedAt);
+
+            Page<UserPhoto> photoPage = this.page(page, queryWrapper);
+            List<UserPhoto> records = photoPage.getRecords();
+
+            if (records.isEmpty()) {
+                break;
+            }
+
+            for (UserPhoto photo : records) {
+                if (isOwner || hasPermissionToView(currentUserId, targetUserId, photo)) {
+                    authorizedPhotos.add(photo);
+
+                    if (authorizedPhotos.size() == limit) {
+                        return photoMapper.toPhotoResponseList(authorizedPhotos);
+                    }
+                }
+            }
+            pageNum++;
+        }
+        return photoMapper.toPhotoResponseList(authorizedPhotos);
+    }
+
+    private boolean hasPermissionToView(String currentUserId, String targetUserId, UserPhoto photo) {
+        Privacy privacy = photo.getPrivacy();
+
+        if (Privacy.PUBLIC.equals(privacy)) {
+            return true;
+        }
+        if (Privacy.PRIVATE.equals(privacy)){
+            return false;
+        }
+
+        if (Privacy.FRIENDS.equals(privacy)) {
+            return spiceDbService.checkPermission(
+                    SpiceDBConstants.TargetType.USER, targetUserId,
+                    SpiceDBConstants.Permission.VIEW,
+                    SpiceDBConstants.TargetType.RESOURCE, currentUserId
+            );
+        }
+        return false;
     }
 
 }

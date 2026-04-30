@@ -1,7 +1,9 @@
 package com.profileservice.modules.profile.service.impl;
 
+import com.alicp.jetcache.Cache;
 import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
+import com.alicp.jetcache.anno.CreateCache;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.commoncore.contanst.ImageConstants;
 import com.commoncore.contanst.KafkaConstant;
@@ -50,6 +52,11 @@ public class ProfileServiceImpl implements IProfileService {
     private final WorkplaceService workplaceService;
     private final MediaUrlResolver mediaUrlResolver;
     private final ApplicationEventPublisher eventPublisher;
+    @CreateCache(name = "userHeader", cacheType = CacheType.BOTH)
+    private Cache<String, UserHeaderResponse> headerCache;
+
+    @CreateCache(name = "profileDetail:", cacheType = CacheType.BOTH)
+    private Cache<String, UserProfileResponse> profileCache;
 
 
     @Override
@@ -69,7 +76,7 @@ public class ProfileServiceImpl implements IProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cached(name = "profileDetail:", key = "#ownerId + ':' + #viewerId", cacheType = CacheType.BOTH, expire = 1, timeUnit = TimeUnit.HOURS)
+    @Cached(name = "profileDetail:", key = "#ownerId + ':' + #viewerId", cacheType = CacheType.BOTH, expire = 5, timeUnit = TimeUnit.MINUTES)
     public UserProfileResponse getProfileDetail(String ownerId, String viewerId) {
         // 1. Query Info cơ bản
         UserInfo userInfo = userInfoMapper.selectOne(new LambdaQueryWrapper<UserInfo>()
@@ -124,6 +131,7 @@ public class ProfileServiceImpl implements IProfileService {
 
     @Cached(name = "userHeader", key = "#userId", cacheType = CacheType.BOTH, expire = 600)
     @Override
+    @Transactional(readOnly = true)
     public UserHeaderResponse getHeaderInfo(String userId) {
         UserInfo userInfo = userInfoMapper.selectOne(new LambdaQueryWrapper<UserInfo>()
                 .select(UserInfo::getUsername, UserInfo::getAvatarUrl)
@@ -173,6 +181,8 @@ public class ProfileServiceImpl implements IProfileService {
 
         if (isChanged) {
             userInfoMapper.updateById(userInfo);
+            headerCache.remove(userId);
+            profileCache.remove(userId + ":" + userId);
             log.info(">>>> [PROFILE] Profile updated for user: {}", userId);
         }
 

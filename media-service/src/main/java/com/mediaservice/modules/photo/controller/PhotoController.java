@@ -4,16 +4,14 @@ import com.commoncore.dto.response.ApiResponse;
 import com.commonsecurity.secutiry.annotation.CurrentUserId;
 import com.mediaservice.modules.photo.dto.request.BatchUploadRequest;
 import com.mediaservice.modules.photo.dto.request.UploadRequest;
+import com.mediaservice.modules.photo.dto.response.PhotoResponse;
 import com.mediaservice.modules.photo.dto.response.PresignedUrlResponse;
 import com.mediaservice.modules.photo.service.IPhotoService;
 import com.mediaservice.modules.photo.service.IS3Service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,5 +28,15 @@ public class PhotoController {
             @CurrentUserId String userId) {
         return ApiResponse.success(photoService.prepareBatchUpload(userId, request));
     }
+    @GetMapping("/{ownerId}/latest")
+    public ApiResponse<List<PhotoResponse>> getLatestAuthorizedPhotos(
+            @PathVariable("ownerId") String ownerId,
+            @CurrentUserId String currentUserId,
+            @RequestParam(defaultValue = "6") int limit
+    )
+    {
+        return ApiResponse.success(photoService.getLatestAuthorizedPhotos(ownerId, currentUserId, limit));
+    }
+
 
 }
