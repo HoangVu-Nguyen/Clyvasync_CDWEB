@@ -9,7 +9,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
       </profile>
-      <profile name="Annotation profile for relation-service" enabled="true">
+      <profile name="Annotation profile for clyvasync" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -22,6 +22,7 @@
         <module name="common-security" />
         <module name="discovery-server" />
         <module name="relation-service" />
+        <module name="relation-service (1)" />
         <module name="gateway-service" />
         <module name="common-database" />
         <module name="media-service" />
@@ -39,6 +40,7 @@
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="Clyvasync" options="-parameters -Amapstruct.defaultComponentModel=spring" />
+      <module name="clyvasync" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="common-core" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="common-database" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="common-security" options="-parameters -Amapstruct.defaultComponentModel=spring" />
@@ -50,6 +52,7 @@
       <module name="notification-service" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="profile-service" options="-parameters -Amapstruct.defaultComponentModel=spring" />
       <module name="relation-service" options="-parameters -Amapstruct.defaultComponentModel=spring" />
+      <module name="relation-service (1)" options="-parameters -Amapstruct.defaultComponentModel=spring" />
     </option>
   </component>
 </project>

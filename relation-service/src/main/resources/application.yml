@@ -1,4 +1,7 @@
+
 spring:
+  application:
+    name: relation-service
   neo4j:
     uri: ${DBMSNSQL_CONNECTION}
     authentication:

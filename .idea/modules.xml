@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/media-service/media-service.iml" filepath="$PROJECT_DIR$/media-service/media-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/profile-service/profile-service.iml" filepath="$PROJECT_DIR$/profile-service/profile-service.iml" />
     </modules>
   </component>
 </project>
