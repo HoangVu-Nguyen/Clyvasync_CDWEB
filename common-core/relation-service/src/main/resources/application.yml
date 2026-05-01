@@ -1,0 +1,6 @@
+spring:
+  neo4j:
+    uri: ${DBMSNSQL_CONNECTION}
+    authentication:
+      username: ${USERNAME_NSQL}
+      password: ${PASSWORD_NSQL}

@@ -39,7 +39,6 @@ import java.util.UUID;
 @Slf4j
 public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> implements IPhotoService {
     private final UserPhotoMapper userPhotoMapper;
-    private final ApplicationEventPublisher eventPublisher;
     private final IS3Service s3Service;
     private final SpiceDbService spiceDbService;
     private final PhotoMapper photoMapper;
@@ -78,7 +77,7 @@ public class PhotoService extends ServiceImpl<UserPhotoMapper,UserPhoto> impleme
                 type,
                 System.currentTimeMillis()
         );
-        //   eventPublisher.publishEvent(event);
+
 
         log.info("Xác nhận ảnh thành công, trạng thái đã chuyển sang ACTIVE");
     }

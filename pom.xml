@@ -26,6 +26,7 @@
         <module>profile-service</module>
         <module>notification-service</module>
         <module>media-service</module>
+        <module>relation-service</module>
     </modules>
 
     <properties>

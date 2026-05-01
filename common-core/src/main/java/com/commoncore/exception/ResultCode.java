@@ -77,6 +77,7 @@ public enum ResultCode {
     INTERACTION_RESTRICTED(5009, HttpStatus.FORBIDDEN),
     BLOCK_SUCCESS(5010, HttpStatus.OK),
     UNBLOCK_SUCCESS(5011, HttpStatus.OK),
+    CANNOT_BLOCK_SELF(5012, HttpStatus.BAD_REQUEST),
 
     // --- 6xxx: Media & Infrastructure ---
     FILE_TOO_LARGE(6001, HttpStatus.BAD_REQUEST),
