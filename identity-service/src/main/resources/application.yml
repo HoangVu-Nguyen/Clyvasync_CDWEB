@@ -1,18 +1,44 @@
 server:
   port: 8081
-  forward-headers-strategy: framework # Chuẩn để nhận diện request từ Gateway
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: false
+        secure: false
+        same-site: strict
 
 spring:
   application:
-    name: identity-service # Phải khớp với định danh trong Gateway
+    name: identity-service
 
+  # --- Cấu hình Database & Flyway ---
+  datasource:
+    url: ${DBMSRSQL_CONNECTION}
+    username: ${USERNAME_RSQL}
+    password: ${PASSWORD_RSQL}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        temp:
+          use_jdbc_metadata_defaults: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    schemas: public
+    table: flyway_schema_history
+
+  # --- Cấu hình Kafka ---
   kafka:
-    bootstrap-servers: ${KAFKA_SERVER:localhost:29092}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.add.type.headers: true
     consumer:
       group-id: notification-group
       auto-offset-reset: earliest
@@ -21,16 +47,36 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
 
+  # --- Cấu hình Redis ---
+  data:
+    redis:
+      host: ${REDIS_CONNECTION:localhost}
+      port: 6379
+      password: ${PASSWORD_REDIS}
+      timeout: 2000
+
+# --- Cấu hình Eureka ---
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+# --- Cấu hình Logic riêng của Clyvasync ---
+clyvasync:
+  auth:
+    client-id: ${AUTH_CLIENT_ID:clyvasync-client}
+    client-secret: ${AUTH_CLIENT_SECRET:default-secret-must-change}
+  security:
+    password:
+      pepper: ${PASSWORD_PEPPER}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-  server-url: https://localhost:8443/identity-service
 
-clyvasync:
-  auth:
-    client-id: ${AUTH_CLIENT_ID:clyvasync-client}
-    client-secret: ${AUTH_CLIENT_SECRET:default-secret-must-change}
-    redirect-uri: ${AUTH_REDIRECT_URI:https://localhost:4200/callback}
-    post-logout-uri: ${AUTH_LOGOUT_URI:https://localhost:4200/login}
+logging:
+  level:
+    org.springframework.security.oauth2.server.authorization: DEBUG
+    org.springframework.jdbc.core.JdbcTemplate: DEBUG

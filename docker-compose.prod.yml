@@ -31,10 +31,26 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      redis:
+        condition: service_started
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_network
+      # Database - Phải khớp với ${DBMSRSQL_CONNECTION} trong YAML
+      - DBMSRSQL_CONNECTION=jdbc:postgresql://postgres:5432/clyvasync_network
+      - USERNAME_RSQL=${USERNAME_RSQL}
+      - PASSWORD_RSQL=${PASSWORD_RSQL}
+
+      # Kafka & Eureka
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+
+      # Redis - Phải khớp với ${REDIS_CONNECTION} trong YAML
+      - REDIS_CONNECTION=clyvasync-redis
+      - PASSWORD_REDIS=${PASSWORD_REDIS}
+
+      # Bảo mật & Auth
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER}
+      - AUTH_CLIENT_ID=${AUTH_CLIENT_ID}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}
     networks:
       - clyvasync-net
 
@@ -49,9 +65,26 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
     environment:
+      # Database Connection
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_profile_db
+      - SPRING_DATASOURCE_USERNAME=${USERNAME_RSQL}
+      - SPRING_DATASOURCE_PASSWORD=${PASSWORD_RSQL}
+
+      # Service Discovery & Kafka
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+
+      # JetCache / Redis
+      - REDIS_CONNECTION=clyvasync-redis
+      - PASSWORD_REDIS=${PASSWORD_REDIS}
+
+      # JWT Authentication (Internal call to Identity Service)
+      - IDENTITY_SERVER_URL=http://identity-service:8081
     networks:
       - clyvasync-net
 
@@ -68,10 +101,30 @@ services:
         condition: service_started
       discovery-server:
         condition: service_healthy
+      redis: # Nên thêm phụ thuộc vào redis
+        condition: service_started
     environment:
+      # Database & Eureka
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_photo_db
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+      - SPRING_DATASOURCE_USERNAME=${USERNAME_RSQL}
+      - SPRING_DATASOURCE_PASSWORD=${PASSWORD_RSQL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+
+      # Kafka
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+
+      # AWS S3 (Rất quan trọng cho Media Service)
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_REGION=${S3_REGION}
+      - BUCKET_NAME=${BUCKET_NAME}
+
+      # JetCache / Redis
+      - REDIS_CONNECTION=clyvasync-redis
+      - PASSWORD_REDIS=${PASSWORD_REDIS}
+
+      # Security (Resource Server)
+      - IDENTITY_SERVER_URL=http://identity-service:8081 # Dùng internal URL trong network
     networks:
       - clyvasync-net
 
@@ -89,6 +142,9 @@ services:
     environment:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+
+      - USERNAME_MAIL=${USERNAME_MAIL}
+      - PASSWORD_MAIL=${PASSWORD_MAIL}
     networks:
       - clyvasync-net
 

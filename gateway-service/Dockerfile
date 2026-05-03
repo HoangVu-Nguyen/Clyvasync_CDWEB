@@ -27,8 +27,7 @@ WORKDIR /app
 
 # Copy file JAR từ stage build
 # Lưu ý: Đảm bảo version 0.0.1-SNAPSHOT khớp chính xác với file pom.xml của bạn
-COPY --from=build /app/gateway-service/target/gateway-service-0.0.1-SNAPSHOT.jar app.jar
-
+COPY --from=build /app/gateway-service/target/*.jar app.jar
 # Gateway thường chạy ở port 8080
 EXPOSE 8080
 

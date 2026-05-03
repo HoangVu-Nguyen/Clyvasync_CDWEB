@@ -99,7 +99,7 @@ public class SecurityConfig {
     // ==============================================================================
 
     @Bean
-    public PasswordEncoder passwordEncoder(@Value("${app.security.password.pepper}") String pepper) {
+    public PasswordEncoder passwordEncoder(@Value("${clyvasync.security.password.pepper}") String pepper) {
         Argon2PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 4, 65536, 3);
         return new PepperedPasswordEncoder(argon2, pepper);
     }
