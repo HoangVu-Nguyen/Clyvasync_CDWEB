@@ -22,7 +22,6 @@
         <module name="common-security" />
         <module name="discovery-server" />
         <module name="relation-service" />
-        <module name="relation-service (1)" />
         <module name="gateway-service" />
         <module name="common-database" />
         <module name="media-service" />
@@ -35,6 +34,7 @@
     <bytecodeTargetLevel>
       <module name="Clyvasync" target="17" />
       <module name="mdia-service" target="17" />
+      <module name="relation-service (1)" target="17" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
