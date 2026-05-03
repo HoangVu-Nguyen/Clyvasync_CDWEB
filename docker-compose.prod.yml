@@ -1,28 +1,31 @@
 version: '3.8'
 
 services:
-  # --- MICROSERVICES ---
+  # --- INFRASTRUCTURE SERVICES ---
   discovery-server:
+    build:
+      context: .
+      dockerfile: discovery-server/Dockerfile
     image: ${DOCKER_USERNAME}/discovery-server:latest
+    container_name: discovery-server
     ports:
       - "8761:8761"
     networks:
       - clyvasync-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761"]
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
-  gateway-service:
-    image: ${DOCKER_USERNAME}/gateway-service:latest
-    ports:
-      - "8080:8080"
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-    networks:
-      - clyvasync-net
-
+  # --- BUSINESS MICROSERVICES ---
   identity-service:
+    build:
+      context: .
+      dockerfile: identity-service/Dockerfile
     image: ${DOCKER_USERNAME}/identity-service:latest
+    container_name: identity-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,16 +33,91 @@ services:
         condition: service_started
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_network
-      - KAFKA_SERVER=kafka-clyvasync:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - clyvasync-net
+
+  profile-service:
+    build:
+      context: .
+      dockerfile: profile-service/Dockerfile
+    image: ${DOCKER_USERNAME}/profile-service:latest
+    container_name: profile-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_profile_db
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    networks:
+      - clyvasync-net
+
+  media-service:
+    build:
+      context: .
+      dockerfile: media-service/Dockerfile
+    image: ${DOCKER_USERNAME}/media-service:latest
+    container_name: media-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      discovery-server:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_photo_db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     networks:
       - clyvasync-net
 
   notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
     image: ${DOCKER_USERNAME}/notification-service:latest
+    container_name: notification-service
     depends_on:
       kafka:
         condition: service_started
+      discovery-server:
+        condition: service_healthy
     environment:
-      - KAFKA_SERVER=kafka-clyvasync:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     networks:
       - clyvasync-net
+
+  # --- GATEWAY ---
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    image: ${DOCKER_USERNAME}/gateway-service:latest
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      profile-service:
+        condition: service_started
+      media-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_REDIS_HOST=clyvasync-redis
+    networks:
+      - clyvasync-net
+
+networks:
+  clyvasync-net:
+    external: true
