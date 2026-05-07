@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserPhotoResponse implements Serializable {
-    private Long id;
+    private String  id;
 
-    private Long userId;
+    private String  userId;
 
     private String photoUrl;
     private Privacy privacy;

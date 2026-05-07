@@ -48,7 +48,8 @@ public class ProfileController {
     }
     @PutMapping("")
     public ApiResponse<Void> updateProfile(@CurrentUserId String userId, @RequestBody UpdateProfileRequest request) {
-        profileService.updateProfile(userId,request);
+        System.out.println(request);
+       profileService.updateProfile(userId,request);
         return ApiResponse.success();
     }
 }

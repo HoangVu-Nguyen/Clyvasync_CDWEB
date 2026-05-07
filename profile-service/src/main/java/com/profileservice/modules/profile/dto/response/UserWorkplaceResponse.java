@@ -15,7 +15,7 @@ import java.io.Serializable;
 @NoArgsConstructor  // BẮT BUỘC: Để MyBatis tạo object trống trước khi map
 @AllArgsConstructor // Cần thiết để @Builder hoạt động
 public class UserWorkplaceResponse implements Serializable {
-    private Long id;
+    private String  id;
     private String companyName;
     private String position;
     private String city;

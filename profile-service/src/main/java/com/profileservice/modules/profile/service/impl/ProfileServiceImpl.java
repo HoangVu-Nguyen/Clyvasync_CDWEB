@@ -23,10 +23,12 @@ import com.commonlibrary.service.social.SpiceDbService;
 
 import com.profileservice.modules.profile.dto.event.ProfileMediaCommitEvent;
 import com.profileservice.modules.profile.dto.request.UpdateProfileRequest;
+import com.profileservice.modules.profile.dto.request.UserEducationRequest;
 import com.profileservice.modules.profile.dto.response.UserEducationResponse;
 import com.profileservice.modules.profile.dto.response.UserHeaderResponse;
 import com.profileservice.modules.profile.dto.response.UserProfileResponse;
 import com.profileservice.modules.profile.dto.response.UserWorkplaceResponse;
+import com.profileservice.modules.profile.entity.profile.entity.UserEducation;
 import com.profileservice.modules.profile.entity.profile.entity.UserInfo;
 import com.profileservice.modules.profile.mapper.UserInfoMapper;
 import com.profileservice.modules.profile.service.IProfileService;
@@ -122,6 +124,7 @@ public class ProfileServiceImpl implements IProfileService {
                 .stream()
                 .filter(e -> canView(e.getPrivacy(), isOwner, finalIsFriend))
                 .toList();
+        System.out.println(filteredEducations);
 
         boolean canViewBasic = canView(userInfo.getPrivacy(), isOwner, finalIsFriend);
 
@@ -165,6 +168,7 @@ public class ProfileServiceImpl implements IProfileService {
     @Transactional
     @CacheInvalidate(name="headerCache", key = "#userId")
     @CacheInvalidate(name = "profileRawData:", key = "#userId")
+
     public void updateProfile(String userId, UpdateProfileRequest request) {
         UserInfo userInfo = userInfoMapper.selectById(userId);
         List<MediaUpdateEvent> mediaUpdateEvents = new ArrayList<>();
@@ -194,6 +198,14 @@ public class ProfileServiceImpl implements IProfileService {
             userInfoMapper.updateById(userInfo);
             log.info(">>>> [PROFILE] Profile updated for user: {}", userId);
         }
+        if (request.getEducations() != null) {
+            educationService.syncEducations(userId, request.getEducations());
+        }
+
+//        // 3. Đồng bộ Workplaces
+//        if (request.getWorkplaces() != null) {
+//            syncWorkplaces(userId, request.getWorkplaces());
+//        }
 
         if (!mediaUpdateEvents.isEmpty()) {
             eventPublisher.publishEvent(new ProfileMediaCommitEvent(mediaUpdateEvents));
@@ -235,4 +247,5 @@ public class ProfileServiceImpl implements IProfileService {
         }
         return url;
     }
+
 }
