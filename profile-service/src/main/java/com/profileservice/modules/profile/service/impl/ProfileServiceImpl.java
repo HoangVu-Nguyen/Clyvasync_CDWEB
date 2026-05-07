@@ -1,9 +1,12 @@
 package com.profileservice.modules.profile.service.impl;
 
 import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.CacheManager;
+import com.alicp.jetcache.anno.CacheInvalidate;
 import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
 import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.template.QuickConfig;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.commoncore.contanst.ImageConstants;
 import com.commoncore.contanst.KafkaConstant;
@@ -27,12 +30,14 @@ import com.profileservice.modules.profile.dto.response.UserWorkplaceResponse;
 import com.profileservice.modules.profile.entity.profile.entity.UserInfo;
 import com.profileservice.modules.profile.mapper.UserInfoMapper;
 import com.profileservice.modules.profile.service.IProfileService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -52,12 +57,26 @@ public class ProfileServiceImpl implements IProfileService {
     private final WorkplaceService workplaceService;
     private final MediaUrlResolver mediaUrlResolver;
     private final ApplicationEventPublisher eventPublisher;
-    @CreateCache(name = "userHeader", cacheType = CacheType.BOTH)
-    private Cache<String, UserHeaderResponse> headerCache;
+    private final CacheManager cacheManager;
 
-    @CreateCache(name = "profileDetail:", cacheType = CacheType.BOTH)
-    private Cache<String, UserProfileResponse> profileCache;
+    private  Cache<String, UserHeaderResponse> headerCache;
+    private  Cache<String, UserProfileResponse> profileCache;
+    @PostConstruct
+    public void init() {
+        QuickConfig qcHeader = QuickConfig.newBuilder("userHeader")
+                .expire(Duration.ofHours(1))
+                .cacheType(CacheType.BOTH)
+                .syncLocal(true)
+                .build();
+        headerCache = cacheManager.getOrCreateCache(qcHeader);
 
+        QuickConfig qcProfile = QuickConfig.newBuilder("profileDetail:")
+                .expire(Duration.ofHours(2))
+                .cacheType(CacheType.BOTH)
+                .syncLocal(true)
+                .build();
+        profileCache = cacheManager.getOrCreateCache(qcProfile);
+    }
 
     @Override
     @Transactional
@@ -76,15 +95,9 @@ public class ProfileServiceImpl implements IProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cached(name = "profileDetail:", key = "#ownerId + ':' + #viewerId", cacheType = CacheType.BOTH, expire = 5, timeUnit = TimeUnit.MINUTES)
     public UserProfileResponse getProfileDetail(String ownerId, String viewerId) {
-        // 1. Query Info cơ bản
-        UserInfo userInfo = userInfoMapper.selectOne(new LambdaQueryWrapper<UserInfo>()
-                .eq(UserInfo::getUserId, ownerId));
-        if (userInfo == null) throw new AppException(ResultCode.USER_NOT_FOUND);
-
+        UserInfo userInfo = getRawUserInfo(ownerId);
         boolean isOwner = ownerId.equals(viewerId);
-
         boolean isFriendCheck = false;
         if (!isOwner && viewerId != null) {
             try {
@@ -133,11 +146,7 @@ public class ProfileServiceImpl implements IProfileService {
     @Override
     @Transactional(readOnly = true)
     public UserHeaderResponse getHeaderInfo(String userId) {
-        UserInfo userInfo = userInfoMapper.selectOne(new LambdaQueryWrapper<UserInfo>()
-                .select(UserInfo::getUsername, UserInfo::getAvatarUrl)
-                .eq(UserInfo::getUserId, userId));
-
-        if (userInfo == null) throw new AppException(ResultCode.USER_NOT_FOUND);
+        UserInfo userInfo = getRawUserInfo(userId);
 
         return UserHeaderResponse.builder()
                 .id(userId)
@@ -154,6 +163,8 @@ public class ProfileServiceImpl implements IProfileService {
     }
     @Override
     @Transactional
+    @CacheInvalidate(name="headerCache", key = "#userId")
+    @CacheInvalidate(name = "profileRawData:", key = "#userId")
     public void updateProfile(String userId, UpdateProfileRequest request) {
         UserInfo userInfo = userInfoMapper.selectById(userId);
         List<MediaUpdateEvent> mediaUpdateEvents = new ArrayList<>();
@@ -181,14 +192,19 @@ public class ProfileServiceImpl implements IProfileService {
 
         if (isChanged) {
             userInfoMapper.updateById(userInfo);
-            headerCache.remove(userId);
-            profileCache.remove(userId + ":" + userId);
             log.info(">>>> [PROFILE] Profile updated for user: {}", userId);
         }
 
         if (!mediaUpdateEvents.isEmpty()) {
             eventPublisher.publishEvent(new ProfileMediaCommitEvent(mediaUpdateEvents));
         }
+    }
+    @Cached(name = "profileRawData:", key = "#ownerId", cacheType = CacheType.BOTH, expire = 5, timeUnit = TimeUnit.MINUTES)
+    public UserInfo getRawUserInfo(String ownerId) {
+        UserInfo userInfo = userInfoMapper.selectOne(new LambdaQueryWrapper<UserInfo>()
+                .eq(UserInfo::getUserId, ownerId));
+        if (userInfo == null) throw new AppException(ResultCode.USER_NOT_FOUND);
+        return userInfo;
     }
 
 
