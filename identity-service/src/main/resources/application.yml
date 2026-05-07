@@ -66,6 +66,9 @@ clyvasync:
   auth:
     client-id: ${AUTH_CLIENT_ID:clyvasync-client}
     client-secret: ${AUTH_CLIENT_SECRET:default-secret-must-change}
+    redirect-uri: ${AUTH_REDIRECT_URI:https://localhost:4200/callback}
+    logout-uri: ${AUTH_LOGIN_URI:https://localhost:4200/login}
+
   security:
     password:
       pepper: ${PASSWORD_PEPPER}

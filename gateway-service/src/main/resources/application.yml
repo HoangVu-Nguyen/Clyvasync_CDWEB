@@ -1,7 +1,7 @@
 server:
   port: 8443
   ssl:
-    enabled: false
+    enabled: true
     key-store: classpath:keystore.p12
     key-store-password: changeit
     key-store-type: PKCS12
