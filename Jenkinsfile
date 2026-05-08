@@ -19,6 +19,7 @@ pipeline {
         stage('Step 1: Push Configs & Ensure Infra is Up') {
             steps {
                 echo "Đang đẩy file cấu hình và script khởi tạo sang EC2..."
+                sh "chmod +x init-multiple-dbs.sh"
                 sshagent(["${env.EC2_SSH_CREDS_ID}"]) {
                     // Đẩy cả 2 file compose VÀ file script khởi tạo DB
                     sh """
