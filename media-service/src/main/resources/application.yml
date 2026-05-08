@@ -13,8 +13,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: https://localhost:8443/identity-service/oauth2/jwks
-          issuer-uri: https://localhost:8443/identity-service
+          jwk-set-uri: http://identity-service:8081/oauth2/jwks
+          issuer-uri: https://localhost:8443
 
   flyway:
     enabled: true
@@ -42,7 +42,10 @@ spring:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.value.default.type: "com.commoncore.dto.event.BaseEvent"
         spring.json.trusted.packages: "com.commoncore.dto.event, com.commoncore.dto"
-
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 jetcache:
   statIntervalMinutes: 15
   areaInCacheName: false

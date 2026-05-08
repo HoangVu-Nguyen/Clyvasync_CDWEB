@@ -12,8 +12,8 @@ import java.io.Serializable;
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@NoArgsConstructor  // BẮT BUỘC: Để MyBatis tạo object trống trước khi map
-@AllArgsConstructor // Cần thiết để @Builder hoạt động
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserWorkplaceResponse implements Serializable {
     private String  id;
     private String companyName;

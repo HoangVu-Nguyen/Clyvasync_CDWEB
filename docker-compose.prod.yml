@@ -1,179 +1,95 @@
 version: '3.8'
 
 services:
-  # --- INFRASTRUCTURE SERVICES ---
   discovery-server:
-    build:
-      context: .
-      dockerfile: discovery-server/Dockerfile
-    image: ${DOCKER_USERNAME}/discovery-server:latest
+    image: ${DOCKER_USERNAME}/discovery-server:${IMAGE_TAG:-latest}
     container_name: discovery-server
     ports:
       - "8761:8761"
     networks:
       - clyvasync-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "nc -z localhost 8761 || exit 1"]
+      interval: 20s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 5
+      start_period: 40s
 
-  # --- BUSINESS MICROSERVICES ---
   identity-service:
-    build:
-      context: .
-      dockerfile: identity-service/Dockerfile
-    image: ${DOCKER_USERNAME}/identity-service:latest
+    image: ${DOCKER_USERNAME}/identity-service:${IMAGE_TAG:-latest}
     container_name: identity-service
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-      redis:
-        condition: service_started
     environment:
-      # Database - Phải khớp với ${DBMSRSQL_CONNECTION} trong YAML
-      - DBMSRSQL_CONNECTION=jdbc:postgresql://postgres:5432/clyvasync_network
+      - DBMSRSQL_CONNECTION=jdbc:postgresql://clyvasync-postgres:5432/clyvasync_network
       - USERNAME_RSQL=${USERNAME_RSQL}
       - PASSWORD_RSQL=${PASSWORD_RSQL}
-
-      # Kafka & Eureka
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-
-      # Redis - Phải khớp với ${REDIS_CONNECTION} trong YAML
       - REDIS_CONNECTION=clyvasync-redis
       - PASSWORD_REDIS=${PASSWORD_REDIS}
-
-      # Bảo mật & Auth
       - PASSWORD_PEPPER=${PASSWORD_PEPPER}
       - AUTH_CLIENT_ID=${AUTH_CLIENT_ID}
       - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET}
     networks:
       - clyvasync-net
-
-  profile-service:
-    build:
-      context: .
-      dockerfile: profile-service/Dockerfile
-    image: ${DOCKER_USERNAME}/profile-service:latest
-    container_name: profile-service
     depends_on:
-      postgres:
-        condition: service_healthy
       discovery-server:
         condition: service_healthy
-      kafka:
-        condition: service_started
-      redis:
-        condition: service_started
+
+  profile-service:
+    image: ${DOCKER_USERNAME}/profile-service:${IMAGE_TAG:-latest}
+    container_name: profile-service
     environment:
-      # Database Connection
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_profile_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://clyvasync-postgres:5432/clyvasync_profile_db
       - SPRING_DATASOURCE_USERNAME=${USERNAME_RSQL}
       - SPRING_DATASOURCE_PASSWORD=${PASSWORD_RSQL}
-
-      # Service Discovery & Kafka
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
-
-      # JetCache / Redis
       - REDIS_CONNECTION=clyvasync-redis
       - PASSWORD_REDIS=${PASSWORD_REDIS}
-
-      # JWT Authentication (Internal call to Identity Service)
       - IDENTITY_SERVER_URL=http://identity-service:8081
     networks:
       - clyvasync-net
-
-  media-service:
-    build:
-      context: .
-      dockerfile: media-service/Dockerfile
-    image: ${DOCKER_USERNAME}/media-service:latest
-    container_name: media-service
     depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
       discovery-server:
         condition: service_healthy
-      redis: # Nên thêm phụ thuộc vào redis
-        condition: service_started
+
+  media-service:
+    image: ${DOCKER_USERNAME}/media-service:${IMAGE_TAG:-latest}
+    container_name: media-service
     environment:
-      # Database & Eureka
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/clyvasync_photo_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://clyvasync-postgres:5432/clyvasync_photo_db
       - SPRING_DATASOURCE_USERNAME=${USERNAME_RSQL}
       - SPRING_DATASOURCE_PASSWORD=${PASSWORD_RSQL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-
-      # Kafka
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
-
-      # AWS S3 (Rất quan trọng cho Media Service)
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_REGION=${S3_REGION}
       - BUCKET_NAME=${BUCKET_NAME}
-
-      # JetCache / Redis
       - REDIS_CONNECTION=clyvasync-redis
       - PASSWORD_REDIS=${PASSWORD_REDIS}
-
-      # Security (Resource Server)
-      - IDENTITY_SERVER_URL=http://identity-service:8081 # Dùng internal URL trong network
+      - IDENTITY_SERVER_URL=http://identity-service:8081
     networks:
       - clyvasync-net
-
-  notification-service:
-    build:
-      context: .
-      dockerfile: notification-service/Dockerfile
-    image: ${DOCKER_USERNAME}/notification-service:latest
-    container_name: notification-service
     depends_on:
-      kafka:
-        condition: service_started
       discovery-server:
         condition: service_healthy
-    environment:
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
 
-      - USERNAME_MAIL=${USERNAME_MAIL}
-      - PASSWORD_MAIL=${PASSWORD_MAIL}
-    networks:
-      - clyvasync-net
-
-  # --- GATEWAY ---
   gateway-service:
-    build:
-      context: .
-      dockerfile: gateway-service/Dockerfile
-    image: ${DOCKER_USERNAME}/gateway-service:latest
+    image: ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG:-latest}
     container_name: gateway-service
     ports:
-      - "8080:8080"
-    depends_on:
-      discovery-server:
-        condition: service_healthy
-      identity-service:
-        condition: service_started
-      profile-service:
-        condition: service_started
-      media-service:
-        condition: service_started
-      notification-service:
-        condition: service_started
+      - "8443:8443"
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
       - SPRING_REDIS_HOST=clyvasync-redis
     networks:
       - clyvasync-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
 
 networks:
   clyvasync-net:
     external: true
+    name: clyvasync-net

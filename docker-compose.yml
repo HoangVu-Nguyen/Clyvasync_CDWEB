@@ -89,6 +89,7 @@ services:
 
 networks:
   clyvasync-net:
+    name: clyvasync-net  # Ép tên cố định
     driver: bridge
 
 volumes:

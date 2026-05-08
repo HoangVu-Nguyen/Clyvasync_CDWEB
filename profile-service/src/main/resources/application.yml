@@ -13,8 +13,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: https://localhost:8443/identity-service/oauth2/jwks
-          issuer-uri: https://localhost:8443/identity-service
+          jwk-set-uri: http://identity-service:8081/oauth2/jwks
+          issuer-uri: https://localhost:8443
 
   flyway:
     enabled: true
@@ -62,7 +62,10 @@ jetcache:
         minIdle: 5
         maxIdle: 20
         maxTotal: 50
-
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 springdoc:
   api-docs:
     path: /v3/api-docs
