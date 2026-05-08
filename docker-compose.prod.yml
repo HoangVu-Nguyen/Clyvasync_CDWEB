@@ -74,7 +74,19 @@ services:
     depends_on:
       discovery-server:
         condition: service_healthy
-
+  notification-service:
+    image: ${DOCKER_USERNAME}/notification-service:${IMAGE_TAG:-latest}
+    container_name: notification-service
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka-clyvasync:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - USERNAME_MAIL=${USERNAME_MAIL}
+      - PASSWORD_MAIL=${PASSWORD_MAIL}
+    networks:
+      - clyvasync-net
+    depends_on:
+      discovery-server:
+        condition: service_healthy
   gateway-service:
     image: ${DOCKER_USERNAME}/gateway-service:${IMAGE_TAG:-latest}
     container_name: gateway-service
