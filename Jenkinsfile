@@ -18,13 +18,22 @@ pipeline {
     stages {
         stage('Step 1: Push Configs & Ensure Infra is Up') {
             steps {
-                echo "Đang đẩy file cấu hình sang EC2 và khởi động hạ tầng..."
+                echo "Đang đẩy file cấu hình và script khởi tạo sang EC2..."
                 sshagent(["${env.EC2_SSH_CREDS_ID}"]) {
-                    sh "scp -o StrictHostKeyChecking=no docker-compose.yml docker-compose.prod.yml ${env.EC2_USER}@${env.EC2_IP}:~/Clyvasync_Microservice/"
+                    // Đẩy cả 2 file compose VÀ file script khởi tạo DB
+                    sh """
+                        scp -o StrictHostKeyChecking=no \
+                        docker-compose.yml \
+                        docker-compose.prod.yml \
+                        init-multiple-dbs.sh \
+                        ${env.EC2_USER}@${env.EC2_IP}:~/Clyvasync_Microservice/
+                    """
 
                     sh """
                         ssh -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_IP} '
                             cd ~/Clyvasync_Microservice && \
+                            # Cấp quyền thực thi cho file script trên EC2
+                            chmod +x init-multiple-dbs.sh && \
                             docker compose -f docker-compose.yml up -d
                         '
                     """
