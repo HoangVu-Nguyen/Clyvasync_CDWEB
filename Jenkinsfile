@@ -18,23 +18,29 @@ pipeline {
     stages {
         stage('Step 1: Push Configs & Ensure Infra is Up') {
             steps {
-                echo "Đang đẩy file cấu hình và script khởi tạo sang EC2..."
+                echo "Đang xử lý và đẩy file cấu hình sang EC2..."
                 sh "chmod +x init-multiple-dbs.sh"
-                sshagent(["${env.EC2_SSH_CREDS_ID}"]) {
-                    // Đẩy cả 2 file compose VÀ file script khởi tạo DB
-                    sh """
-                        scp -o StrictHostKeyChecking=no \
-                        docker-compose.yml \
-                        docker-compose.prod.yml \
-                        init-multiple-dbs.sh \
-                        ${env.EC2_USER}@${env.EC2_IP}:~/Clyvasync_Microservice/
-                    """
 
+                sshagent(["${env.EC2_SSH_CREDS_ID}"]) {
                     sh """
+                        # 1. Đảm bảo thư mục tồn tại và có quyền ghi
+                        ssh -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_IP} 'mkdir -p ~/Clyvasync_Microservice'
+
+                        # 2. Gửi các file Compose trước
+                        scp -o StrictHostKeyChecking=no docker-compose.yml docker-compose.prod.yml ${env.EC2_USER}@${env.EC2_IP}:~/Clyvasync_Microservice/
+
+                        # 3. Gửi file script vào thư mục HOME (tránh bị khóa) rồi mới chuyển vào project
+                        scp -o StrictHostKeyChecking=no init-multiple-dbs.sh ${env.EC2_USER}@${env.EC2_IP}:~/init-multiple-dbs.sh.tmp
+
+                        # 4. SSH vào để thực hiện cập nhật và chạy Infra
                         ssh -o StrictHostKeyChecking=no ${env.EC2_USER}@${env.EC2_IP} '
                             cd ~/Clyvasync_Microservice && \
-                            # Cấp quyền thực thi cho file script trên EC2
+
+                            # Di chuyển file tạm vào vị trí chính thức (ép ghi đè)
+                            mv ~/init-multiple-dbs.sh.tmp ./init-multiple-dbs.sh && \
                             chmod +x init-multiple-dbs.sh && \
+
+                            # Khởi động hạ tầng
                             docker compose -f docker-compose.yml up -d
                         '
                     """
