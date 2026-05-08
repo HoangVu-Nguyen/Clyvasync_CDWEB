@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'clyvasync-microservice'
+        DOCKER_HUB_USER = 'clyvasync'
         DOCKER_HUB_CREDS_ID = 'docker-hub-credentials'
         EC2_SSH_CREDS_ID = 'ec2-server-microservice-key'
         EC2_IP = '13.221.88.185'
