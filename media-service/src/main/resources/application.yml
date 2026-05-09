@@ -13,7 +13,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://identity-service:8081/oauth2/jwks
+          jwk-set-uri: http://${SERVICE_IP}:8081/oauth2/jwks
           issuer-uri: https://localhost:8443
 
   flyway:
@@ -71,7 +71,7 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-  server-url: https://localhost:8443/media-service
+  server-url: https://${SERVICE}:8443/media-service
 
 aws:
   s3:

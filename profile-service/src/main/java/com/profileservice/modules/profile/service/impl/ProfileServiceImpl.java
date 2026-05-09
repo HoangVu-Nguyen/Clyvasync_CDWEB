@@ -202,10 +202,9 @@ public class ProfileServiceImpl implements IProfileService {
             educationService.syncEducations(userId, request.getEducations());
         }
 
-//        // 3. Đồng bộ Workplaces
-//        if (request.getWorkplaces() != null) {
-//            syncWorkplaces(userId, request.getWorkplaces());
-//        }
+        if (request.getWorkplaces() != null) {
+            workplaceService.syncWorkplaces(userId, request.getWorkplaces());
+        }
 
         if (!mediaUpdateEvents.isEmpty()) {
             eventPublisher.publishEvent(new ProfileMediaCommitEvent(mediaUpdateEvents));

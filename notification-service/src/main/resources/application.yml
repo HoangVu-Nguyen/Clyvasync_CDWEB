@@ -28,7 +28,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://identity-service:8081/oauth2/jwks
+          jwk-set-uri: http://${SERVICE_IP}:8081/oauth2/jwks
           issuer-uri: https://localhost:8443
 
   kafka:

@@ -1,5 +1,6 @@
 package com.profileservice.modules.profile.mapstruct;
 
+import com.profileservice.modules.profile.dto.request.UserWorkplaceRequest;
 import com.profileservice.modules.profile.dto.response.UserWorkplaceResponse;
 import com.profileservice.modules.profile.entity.profile.entity.UserWorkplace;
 import org.mapstruct.Mapper;
@@ -12,4 +13,5 @@ public interface WorkplaceMapper {
     List<UserWorkplaceResponse> toUserWorkplaceResponse(List<UserWorkplace> userWorkplace);
     UserWorkplace toUserWorkplace(UserWorkplaceResponse userWorkplaceResponse);
     List<UserWorkplace> toUserWorkplace(List<UserWorkplaceResponse> userWorkplaceResponse);
+    UserWorkplace toEntity(UserWorkplaceRequest userWorkplaceRequest);
 }
