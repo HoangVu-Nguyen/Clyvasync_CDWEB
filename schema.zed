@@ -7,4 +7,6 @@ definition resource {
 
 
     permission view = (owner + friend) - blocked
+    permission edit = owner
+    permission delete = owner
 }

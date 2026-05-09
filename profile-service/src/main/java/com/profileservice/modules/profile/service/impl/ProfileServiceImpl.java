@@ -61,6 +61,7 @@ public class ProfileServiceImpl implements IProfileService {
     private final ApplicationEventPublisher eventPublisher;
     private final CacheManager cacheManager;
 
+
     private  Cache<String, UserHeaderResponse> headerCache;
     private  Cache<String, UserProfileResponse> profileCache;
     @PostConstruct
@@ -93,6 +94,17 @@ public class ProfileServiceImpl implements IProfileService {
                 .build();
 
         userInfoMapper.insert(userInfo);
+        try {
+            spiceDBService.writeRelationship(
+                    SpiceDBConstants.TargetType.USER, event.getUserId(),
+                    SpiceDBConstants.Relation.OWNER,
+                    SpiceDBConstants.TargetType.USER, event.getUserId()
+            );
+            log.info("Successfully initialized SpiceDB permissions for user: {}", event.getUserId());
+        } catch (Exception e) {
+            log.error("Failed to write SpiceDB permission: {}", e.getMessage());
+            throw new RuntimeException("SpiceDB integration failed, rolling back user creation");
+        }
     }
 
     @Override
@@ -170,6 +182,14 @@ public class ProfileServiceImpl implements IProfileService {
     @CacheInvalidate(name = "profileRawData:", key = "#userId")
 
     public void updateProfile(String userId, UpdateProfileRequest request) {
+        boolean canEdit = spiceDBService.checkPermission(
+                SpiceDBConstants.TargetType.USER, userId,
+                SpiceDBConstants.Permission.EDIT,
+                SpiceDBConstants.TargetType.USER, userId
+        );
+        if (!canEdit) {
+            throw new AppException(ResultCode.ACCESS_DENIED);
+        }
         UserInfo userInfo = userInfoMapper.selectById(userId);
         List<MediaUpdateEvent> mediaUpdateEvents = new ArrayList<>();
 

@@ -5,6 +5,7 @@ import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.commonlibrary.service.social.SpiceDbService;
 import com.profileservice.modules.profile.dto.request.UserEducationRequest;
 import com.profileservice.modules.profile.dto.response.UserEducationResponse;
 import com.profileservice.modules.profile.entity.profile.entity.UserEducation;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class EducationService extends ServiceImpl<UserEducationMapper, UserEducation> implements IEducationService {
     private final UserEducationMapper userEducationMapper;
     private final EducationMapper educationMapper;
+    private final SpiceDbService spiceDbService;
 
     @Override
     @Cached(name = "userEducations:", key = "#userId", cacheType = CacheType.BOTH, expire = 10, timeUnit = TimeUnit.MINUTES)
