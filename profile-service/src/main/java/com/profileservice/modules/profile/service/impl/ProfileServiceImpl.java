@@ -189,7 +189,7 @@ public class ProfileServiceImpl implements IProfileService {
 
     public void updateProfile(String userId, UpdateProfileRequest request) {
         boolean canEdit = spiceDBService.checkPermission(
-                SpiceDBConstants.TargetType.USER, userId,
+                SpiceDBConstants.TargetType.RESOURCE, userId,
                 SpiceDBConstants.Permission.EDIT,
                 SpiceDBConstants.TargetType.USER, userId
         );
