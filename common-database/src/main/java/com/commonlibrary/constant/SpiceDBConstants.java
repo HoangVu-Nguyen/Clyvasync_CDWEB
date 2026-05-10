@@ -29,6 +29,7 @@ public class SpiceDBConstants {
     @Getter
     @RequiredArgsConstructor
     public enum Permission {
+        FRIEND("friend"),
         VIEW("view"),
         EDIT("edit"),
         DELETE("delete");

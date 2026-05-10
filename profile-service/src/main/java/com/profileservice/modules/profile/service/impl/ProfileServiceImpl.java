@@ -119,16 +119,26 @@ public class ProfileServiceImpl implements IProfileService {
         UserInfo userInfo = getRawUserInfo(ownerId);
         boolean isOwner = ownerId.equals(viewerId);
         boolean isFriendCheck = false;
+        boolean hasSpiceDbViewPermission = false;
         if (!isOwner && viewerId != null) {
             try {
-                isFriendCheck = spiceDBService.checkPermission(
-                        SpiceDBConstants.TargetType.USER, viewerId,
+                 hasSpiceDbViewPermission = spiceDBService.checkPermission(
+                        SpiceDBConstants.TargetType.RESOURCE, ownerId,
                         SpiceDBConstants.Permission.VIEW,
-                        SpiceDBConstants.TargetType.USER, ownerId
+                        SpiceDBConstants.TargetType.USER, viewerId
+                );
+
+                 isFriendCheck = spiceDBService.checkRelation(
+                        SpiceDBConstants.TargetType.USER, ownerId,
+                        SpiceDBConstants.Relation.FRIEND,
+                        SpiceDBConstants.TargetType.USER, viewerId
                 );
             } catch (Exception e) {
                 log.error("SpiceDB check failed for owner {}: {}", ownerId, e.getMessage());
             }
+        }else if (isOwner) {
+            hasSpiceDbViewPermission = true;
+            isFriendCheck = true;
         }
         final boolean finalIsFriend = isFriendCheck;
 

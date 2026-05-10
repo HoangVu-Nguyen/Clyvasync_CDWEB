@@ -18,14 +18,29 @@ public class SpiceDbService {
     private final PermissionsServiceGrpc.PermissionsServiceBlockingStub permissionsStub;
 
     // 1. Check: Resource trước, Subject sau
+    // 1. Hàm kiểm tra Quyền (Permission) - Dùng cho VIEW, EDIT, DELETE...
     public boolean checkPermission(SpiceDBConstants.TargetType resourceType, String resourceId,
                                    SpiceDBConstants.Permission permission,
                                    SpiceDBConstants.TargetType subjectType, String subjectId) {
+        return executeCheck(resourceType, resourceId, permission.getValue(), subjectType, subjectId);
+    }
+
+    // 2. Hàm kiểm tra Quan hệ (Relation) - Dùng cho FRIEND, OWNER, MANAGER...
+    public boolean checkRelation(SpiceDBConstants.TargetType resourceType, String resourceId,
+                                 SpiceDBConstants.Relation relation,
+                                 SpiceDBConstants.TargetType subjectType, String subjectId) {
+        return executeCheck(resourceType, resourceId, relation.getValue(), subjectType, subjectId);
+    }
+
+    // 3. Hàm Private thực thi gọi gRPC (Tái sử dụng code)
+    private boolean executeCheck(SpiceDBConstants.TargetType resourceType, String resourceId,
+                                 String actionToCheck, // Nhận String từ .getValue() của cả 2 Enum
+                                 SpiceDBConstants.TargetType subjectType, String subjectId) {
         CheckPermissionRequest request = CheckPermissionRequest.newBuilder()
                 .setResource(ObjectReference.newBuilder()
                         .setObjectType(resourceType.getValue())
                         .setObjectId(resourceId))
-                .setPermission(permission.getValue())
+                .setPermission(actionToCheck) // SpiceDB API dùng chung trường này cho cả Relation và Permission
                 .setSubject(SubjectReference.newBuilder()
                         .setObject(ObjectReference.newBuilder()
                                 .setObjectType(subjectType.getValue())
