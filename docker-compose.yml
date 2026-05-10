@@ -9,30 +9,36 @@ services:
       POSTGRES_DB: clyvasync_network
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Mount file script để tạo nhiều DB khi khởi tạo lần đầu
       - ./init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
-    networks:
-      - clyvasync-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${USERNAME_RSQL} -d clyvasync_network"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - clyvasync-net
 
   kafka:
     image: apache/kafka:3.7.0
     container_name: kafka-clyvasync
     restart: always
     environment:
-      - KAFKA_NODE_ID=1
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_LISTENERS=INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
-      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka-clyvasync:9092,EXTERNAL://localhost:29092
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
-      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka-clyvasync:9093
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-clyvasync:9092,EXTERNAL://localhost:29092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-clyvasync:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "29092:29092"
     networks:
       - clyvasync-net
 
@@ -41,23 +47,29 @@ services:
     container_name: clyvasync-redis
     restart: always
     command: redis-server --requirepass ${PASSWORD_REDIS}
+    ports:
+      - "6379:6379"
     networks:
       - clyvasync-net
 
+  # 2. Khởi tạo Database phụ cho SpiceDB
   db-init:
     image: postgres:15
+    container_name: db-init
+    networks:
+      - clyvasync-net
     environment:
-      PGPASSWORD: ${PASSWORD_RSQL:-password}
+      PGPASSWORD: ${PASSWORD_RSQL}
     command: >
       sh -c "psql -h clyvasync-postgres -U ${USERNAME_RSQL} -d postgres -c 'CREATE DATABASE spicedb;' || true"
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - clyvasync-net
 
+  # 3. Chạy Migration cho SpiceDB
   spicedb-migrate:
     image: authzed/spicedb:latest
+    container_name: spicedb-migrate
     command: >
       migrate head 
       --datastore-engine postgres 
@@ -68,21 +80,48 @@ services:
     networks:
       - clyvasync-net
 
+  # 4. Service SpiceDB chính
   spicedb:
     image: authzed/spicedb:latest
     container_name: spicedb
     restart: always
+    ports:
+      - "50051:50051"
+      - "9090:9090"
     command: >
       serve 
       --datastore-engine postgres 
       --datastore-conn-uri "postgres://${USERNAME_RSQL}:${PASSWORD_RSQL}@clyvasync-postgres:5432/spicedb?sslmode=disable"
       --grpc-preshared-key "${SPICEDB_KEY}"
       --http-enabled
+    healthcheck:
+      test: [ "CMD", "/usr/local/bin/grpc_health_probe", "-addr=localhost:50051" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       spicedb-migrate:
         condition: service_completed_successfully
     networks:
       - clyvasync-net
+
+  spicedb-schema-loader:
+    image: authzed/zed:latest
+    container_name: spicedb-schema-loader
+    volumes:
+      - ./schema.zed:/schema.zed
+    environment:
+      ZED_ENDPOINT: "spicedb:50051"
+      ZED_TOKEN: "${SPICEDB_KEY}"
+      ZED_INSECURE: "true"
+    command: [ "schema", "write", "/schema.zed" ]
+    depends_on:
+      spicedb:
+        condition: service_healthy
+    networks:
+      - clyvasync-net
+#    docker compose run --rm spicedb-schema-loader
 
 networks:
   clyvasync-net:
