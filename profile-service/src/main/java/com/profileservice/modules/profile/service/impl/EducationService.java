@@ -40,7 +40,6 @@ public class EducationService extends ServiceImpl<UserEducationMapper, UserEduca
     @Transactional
     @CacheInvalidate(name = "userEducations:", key = "#userId")
     public void syncEducations(String userId, List<UserEducationRequest> requests) {
-        System.out.println(requests);
         if (requests == null || requests.isEmpty()) return;
 
         List<String> existingIds = this.listObjs(
@@ -51,13 +50,11 @@ public class EducationService extends ServiceImpl<UserEducationMapper, UserEduca
         );
         System.out.println(existingIds);
 
-        // 2. Gom danh sách ID từ Frontend gửi lên
         List<String> requestIds = requests.stream()
                 .map(UserEducationRequest::getId)
                 .filter(Objects::nonNull).toList();
         System.out.println(requestIds);
 
-        // 3. XÓA: ID có trong DB nhưng Frontend không gửi
         List<String> idsToDelete = existingIds.stream()
                 .filter(id -> !requestIds.contains(id))
                 .toList();
@@ -66,12 +63,10 @@ public class EducationService extends ServiceImpl<UserEducationMapper, UserEduca
             this.removeBatchByIds(idsToDelete);
         }
 
-        // 4. PHÂN LOẠI UPDATE VÀ INSERT
         List<UserEducation> listToUpdate = new ArrayList<>();
         List<UserEducation> listToInsert = new ArrayList<>();
 
         for (UserEducationRequest req : requests) {
-            // Dummy ID -> Bỏ qua
             if (req.getSchoolName() == null) {
                 continue;
             }

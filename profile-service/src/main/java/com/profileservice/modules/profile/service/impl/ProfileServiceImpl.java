@@ -19,6 +19,7 @@ import com.commoncore.exception.ResultCode;
 import com.commoncore.producer.CoreKafkaProducer;
 import com.commoncore.resolver.MediaUrlResolver;
 import com.commonlibrary.constant.SpiceDBConstants;
+import com.commonlibrary.dto.record.SpiceDbRel;
 import com.commonlibrary.service.social.SpiceDbService;
 
 import com.profileservice.modules.profile.dto.event.ProfileMediaCommitEvent;
@@ -95,22 +96,23 @@ public class ProfileServiceImpl implements IProfileService {
 
        userInfoMapper.insert(userInfo);
         try {
-            spiceDBService.writeRelationship(
-                    SpiceDBConstants.TargetType.USER, event.getUserId(),
-                    SpiceDBConstants.Relation.MANAGER,
-                    SpiceDBConstants.TargetType.USER, event.getUserId()
-            );
+            List<SpiceDbRel> spiceDbRels = getSpiceDbRels(event);
 
-            spiceDBService.writeRelationship(
-                    SpiceDBConstants.TargetType.RESOURCE, event.getUserId(),
-                    SpiceDBConstants.Relation.OWNER,
-                    SpiceDBConstants.TargetType.USER, event.getUserId()
-            );
+            spiceDBService.writeRelationships(spiceDbRels);
+
             log.info("Successfully initialized SpiceDB permissions for user: {}", event.getUserId());
         } catch (Exception e) {
             log.error("Failed to write SpiceDB permission: {}", e.getMessage());
             throw new RuntimeException("SpiceDB integration failed, rolling back user creation");
         }
+    }
+    private static List<SpiceDbRel> getSpiceDbRels(UserEvent event) {
+        List<SpiceDbRel> spiceDbRels = new ArrayList<>();
+        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.USER.name(), event.getUserId(), SpiceDBConstants.Relation.MANAGER.name(),
+                SpiceDBConstants.TargetType.USER.name(), event.getUserId()));
+        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.RESOURCE.name(), event.getUserId(), SpiceDBConstants.Relation.OWNER.name(),
+                SpiceDBConstants.TargetType.USER.name(), event.getUserId()));
+        return spiceDbRels;
     }
 
     @Override
@@ -119,16 +121,10 @@ public class ProfileServiceImpl implements IProfileService {
         UserInfo userInfo = getRawUserInfo(ownerId);
         boolean isOwner = ownerId.equals(viewerId);
         boolean isFriendCheck = false;
-        boolean hasSpiceDbViewPermission = false;
+
         if (!isOwner && viewerId != null) {
             try {
-                 hasSpiceDbViewPermission = spiceDBService.checkPermission(
-                        SpiceDBConstants.TargetType.RESOURCE, ownerId,
-                        SpiceDBConstants.Permission.VIEW,
-                        SpiceDBConstants.TargetType.USER, viewerId
-                );
-
-                 isFriendCheck = spiceDBService.checkRelation(
+                isFriendCheck = spiceDBService.checkRelation(
                         SpiceDBConstants.TargetType.USER, ownerId,
                         SpiceDBConstants.Relation.FRIEND,
                         SpiceDBConstants.TargetType.USER, viewerId
@@ -136,25 +132,31 @@ public class ProfileServiceImpl implements IProfileService {
             } catch (Exception e) {
                 log.error("SpiceDB check failed for owner {}: {}", ownerId, e.getMessage());
             }
-        }else if (isOwner) {
-            hasSpiceDbViewPermission = true;
+        } else if (isOwner) {
             isFriendCheck = true;
         }
+
         final boolean finalIsFriend = isFriendCheck;
 
-        // 3. Lấy dữ liệu thô và Filter bằng logic canView (In-memory)
-        List<UserWorkplaceResponse> filteredWorkplaces = workplaceService.getWorkplacesByUserId(ownerId)
-                .stream()
-                .filter(w -> canView(w.getPrivacy(), isOwner, finalIsFriend))
-                .toList();
-
-        List<UserEducationResponse> filteredEducations = educationService.getEducationsByUserId(ownerId)
-                .stream()
-                .filter(e -> canView(e.getPrivacy(), isOwner, finalIsFriend))
-                .toList();
-        System.out.println(filteredEducations);
-
         boolean canViewBasic = canView(userInfo.getPrivacy(), isOwner, finalIsFriend);
+
+        List<UserWorkplaceResponse> filteredWorkplaces;
+        List<UserEducationResponse> filteredEducations;
+
+        if (!canViewBasic) {
+            filteredWorkplaces = List.of();
+            filteredEducations = List.of();
+        } else {
+            filteredWorkplaces = workplaceService.getWorkplacesByUserId(ownerId)
+                    .stream()
+                    .filter(w -> canView(w.getPrivacy(), isOwner, finalIsFriend))
+                    .toList();
+
+            filteredEducations = educationService.getEducationsByUserId(ownerId)
+                    .stream()
+                    .filter(e -> canView(e.getPrivacy(), isOwner, finalIsFriend))
+                    .toList();
+        }
 
         return UserProfileResponse.builder()
                 .userId(ownerId)
@@ -162,9 +164,10 @@ public class ProfileServiceImpl implements IProfileService {
                 .avatarUrl(mediaUrlResolver.resolve(userInfo.getAvatarUrl() != null ? userInfo.getAvatarUrl() : ImageConstants.AVATAR_DEFAULT))
                 .coverUrl(mediaUrlResolver.resolve(userInfo.getCoverUrl() != null ? userInfo.getCoverUrl() : ImageConstants.COVER_DEFAULT))
                 .isOwner(isOwner)
-                .website(userInfo.getWebsite())
-                .canViewPrivateInfo(canViewBasic)
                 .privacy(userInfo.getPrivacy())
+                .canViewPrivateInfo(canViewBasic)
+
+                .website(canViewBasic ? userInfo.getWebsite() : null)
                 .bio(canViewBasic ? userInfo.getBio() : "This profile is private")
                 .location(canViewBasic ? userInfo.getLocation() : "Hidden")
                 .birthDate(canViewBasic ? userInfo.getBirthDate() : null)
@@ -172,7 +175,6 @@ public class ProfileServiceImpl implements IProfileService {
                 .educations(filteredEducations)
                 .build();
     }
-
     @Cached(name = "userHeader", key = "#userId", cacheType = CacheType.BOTH, expire = 600)
     @Override
     @Transactional(readOnly = true)

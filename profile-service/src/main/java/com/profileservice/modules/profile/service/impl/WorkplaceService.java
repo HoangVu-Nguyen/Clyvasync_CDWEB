@@ -37,7 +37,6 @@ public class WorkplaceService extends ServiceImpl<UserWorkplaceMapper,UserWorkpl
     @Transactional
     @CacheInvalidate(name = "userWorkplaces:", key = "#userId")
     public void syncWorkplaces(String userId, List<UserWorkplaceRequest> requests) {
-        System.out.println(requests);
         if (requests == null || requests.isEmpty()) return;
 
         List<String> existingIds = this.listObjs(
