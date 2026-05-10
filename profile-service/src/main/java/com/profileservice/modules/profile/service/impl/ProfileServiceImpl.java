@@ -93,10 +93,16 @@ public class ProfileServiceImpl implements IProfileService {
                 .coverUrl(ImageConstants.COVER_DEFAULT)
                 .build();
 
-        userInfoMapper.insert(userInfo);
+       userInfoMapper.insert(userInfo);
         try {
             spiceDBService.writeRelationship(
                     SpiceDBConstants.TargetType.USER, event.getUserId(),
+                    SpiceDBConstants.Relation.MANAGER,
+                    SpiceDBConstants.TargetType.USER, event.getUserId()
+            );
+
+            spiceDBService.writeRelationship(
+                    SpiceDBConstants.TargetType.RESOURCE, event.getUserId(),
                     SpiceDBConstants.Relation.OWNER,
                     SpiceDBConstants.TargetType.USER, event.getUserId()
             );

@@ -20,6 +20,7 @@ public class SpiceDBConstants {
     public enum Relation {
         FRIEND("friend"),
         OWNER("owner"),
+        MANAGER("manager"),
         BLOCKED("blocked");
 
         private final String value;

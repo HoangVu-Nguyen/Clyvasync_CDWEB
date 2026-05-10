@@ -1,12 +1,14 @@
-definition user {}
+definition user {
+ relation manager: user
+ relation friend: user
+ }
 
 definition resource {
     relation owner: user
     relation friend: user
     relation blocked: user
 
-
+    permission edit = owner + owner->manager
     permission view = (owner + friend) - blocked
-    permission edit = owner
-    permission delete = owner
+    permission delete = owner + owner->manager
 }
