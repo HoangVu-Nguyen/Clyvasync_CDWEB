@@ -10,6 +10,7 @@ import com.alicp.jetcache.template.QuickConfig;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.commoncore.contanst.ImageConstants;
 import com.commoncore.contanst.KafkaConstant;
+import com.commoncore.contanst.ProfileConstant;
 import com.commoncore.dto.event.MediaUpdateEvent;
 import com.commoncore.dto.event.UserEvent;
 import com.commoncore.enums.photo.ImageType;
@@ -108,10 +109,10 @@ public class ProfileServiceImpl implements IProfileService {
     }
     private static List<SpiceDbRel> getSpiceDbRels(UserEvent event) {
         List<SpiceDbRel> spiceDbRels = new ArrayList<>();
-        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.USER.name(), event.getUserId(), SpiceDBConstants.Relation.MANAGER.name(),
-                SpiceDBConstants.TargetType.USER.name(), event.getUserId()));
-        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.RESOURCE.name(), event.getUserId(), SpiceDBConstants.Relation.OWNER.name(),
-                SpiceDBConstants.TargetType.USER.name(), event.getUserId()));
+        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.USER.getValue(), event.getUserId(), SpiceDBConstants.Relation.MANAGER.getValue(),
+                SpiceDBConstants.TargetType.USER.getValue(), event.getUserId()));
+        spiceDbRels.add(new SpiceDbRel(SpiceDBConstants.TargetType.RESOURCE.getValue(), event.getUserId(), SpiceDBConstants.Relation.OWNER.getValue(),
+                SpiceDBConstants.TargetType.USER.getValue(), event.getUserId()));
         return spiceDbRels;
     }
 
@@ -166,9 +167,8 @@ public class ProfileServiceImpl implements IProfileService {
                 .isOwner(isOwner)
                 .privacy(userInfo.getPrivacy())
                 .canViewPrivateInfo(canViewBasic)
-
                 .website(canViewBasic ? userInfo.getWebsite() : null)
-                .bio(canViewBasic ? userInfo.getBio() : "This profile is private")
+                .bio(canViewBasic ? userInfo.getBio() : ProfileConstant.PROFILE_HIDDEN)
                 .location(canViewBasic ? userInfo.getLocation() : "Hidden")
                 .birthDate(canViewBasic ? userInfo.getBirthDate() : null)
                 .workplaces(filteredWorkplaces)
