@@ -41,6 +41,16 @@ services:
       - "29092:29092"
     networks:
       - clyvasync-net
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j-clyvasync
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${USERNAME_NSQL}/${PASSWORD_NSQL}
+    networks:
+      - clyvasync-net
 
   redis:
     image: redis:latest

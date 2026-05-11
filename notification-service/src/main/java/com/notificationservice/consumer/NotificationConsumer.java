@@ -83,6 +83,9 @@ public class NotificationConsumer {
                 case USER_REGISTERED -> StateSendMail.REGISTER;
                 case USER_UPDATE -> null;
                 case AVATAR_UPDATED -> null;
+                case FRIEND_REQUEST -> null;
+                case ACCEPT_FRIEND -> null;
+                case LIKE_POST -> null;
                 case COVER_UPDATED -> null;
             };
         } catch (IllegalArgumentException e) {

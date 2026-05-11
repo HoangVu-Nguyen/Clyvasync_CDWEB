@@ -14,6 +14,9 @@ public enum EventType {
 
     // Luồng Media & Profile
     AVATAR_UPDATED("Cập nhật ảnh đại diện"),
+    FRIEND_REQUEST("Gửi lời mời kết bạn "),
+    ACCEPT_FRIEND("Đồng ý kết bạn"),
+    LIKE_POST("Đã thích bài viết"),
     COVER_UPDATED("Cập nhật ảnh bìa");
 
     private final String description;

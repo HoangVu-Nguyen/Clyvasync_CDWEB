@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/profiles/**").permitAll() // Tạm thời permitAll để test, sau này đổi thành authenticated()
                         .requestMatchers("/api/v1/media/**").permitAll()
+                        .requestMatchers("/ws-notification/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )

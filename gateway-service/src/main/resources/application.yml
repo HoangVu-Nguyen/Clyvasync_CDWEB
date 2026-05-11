@@ -11,21 +11,20 @@ eureka:
     serviceUrl:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
 spring:
-  main:
-    web-application-type: reactive
   cloud:
     gateway:
-
-      default-filters:
-        - PreserveHostHeader
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowedOrigins: "https://localhost:4200"
+            # Sử dụng pattern để tránh lỗi 403 khi dùng credentials
+            allowedOriginPatterns:
+              - "https://localhost:4200"
+              - "http://localhost:4200"
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true
+
       routes:
         - id: identity-service
           uri: lb://identity-service
@@ -61,6 +60,21 @@ spring:
             - Path=/media-service/**
           filters:
             - RewritePath=/media-service/(?<segment>.*), /${segment}
+        - id: notification-service-api
+          uri: lb://notification-service
+          predicates:
+              - Path=/api/v1/notifications/**
+
+        - id: notification-websocket
+          uri: lb://notification-service
+          predicates:
+            - Path=/ws-notification/**
+          filters:
+              - PreserveHostHeader
+        - id: relation-service
+          uri: lb://relation-service
+          predicates:
+            - Path=/api/v1/relations/**
 
 
 springdoc:

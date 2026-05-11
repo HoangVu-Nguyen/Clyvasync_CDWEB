@@ -1,7 +1,9 @@
 package com.relationservice.service.impl;
 
+import com.commoncore.dto.event.FriendRequestEvent;
 import com.commoncore.exception.AppException;
 import com.commoncore.exception.ResultCode;
+
 import com.commonlibrary.constant.SpiceDBConstants;
 import com.commonlibrary.dto.record.SpiceDbRel;
 import com.commonlibrary.dto.schema.SpiceSchema;
@@ -13,6 +15,7 @@ import com.relationservice.repository.UserNodeRepository;
 import com.relationservice.service.RelationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,21 +30,20 @@ public class RelationServiceImpl implements RelationService {
 
     private final UserNodeRepository userNodeRepository;
     private final SpiceDbService spiceDBService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    @Transactional
+    @Transactional(value = "transactionManager")
     public void sendFriendRequest(String fromUserId, String toUserId) {
         if (fromUserId.equals(toUserId)) throw new AppException(ResultCode.CANNOT_SEND_TO_SELF);
 
         UserNode fromNode = getOrCreateNode(fromUserId);
         UserNode toNode = getOrCreateNode(toUserId);
 
-        // 1. Kiểm tra xem có đang bị Block không hoặc đã kết bạn/gửi request chưa
         boolean exists = fromNode.getRelations().stream()
                 .anyMatch(r -> r.getTargetUser().getUserId().equals(toUserId));
         if (exists) throw new AppException(ResultCode.ALREADY_FRIENDS);
 
-        // 2. Tạo Request
         UserRelation relation = UserRelation.builder()
                 .status(RelationStatus.PENDING)
                 .createdAt(LocalDateTime.now())
@@ -51,6 +53,8 @@ public class RelationServiceImpl implements RelationService {
 
         fromNode.getRelations().add(relation);
         userNodeRepository.save(fromNode);
+        applicationEventPublisher.publishEvent(new FriendRequestEvent(fromUserId, toUserId));
+
 
         log.info(">>>> [RELATION] Friend request sent from {} to {}", fromUserId, toUserId);
     }
